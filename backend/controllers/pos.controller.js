@@ -3,7 +3,6 @@ import Order from '../models/order.model.js';
 import Table from '../models/table.model.js';
 
 // Create a new bill
-// Create a new bill
 export const createBill = async (req, res) => {
   try {
     const {
@@ -53,32 +52,53 @@ export const createBill = async (req, res) => {
       quantity: item.quantity,
     }));
 
-    // Determine kitchen order type and required fields
-    const kitchenOrderData = {
-      customerName: customerName || 'Guest',
-      items: orderItems,
-      paymentMethod: 'counter',
-      subtotal: total,
-      status: 'in-progress',
-      sentToKOT: true,
-    };
-
+    // Handle table booking and session management
     if (tableNumber) {
-      // Dine-in with table
-      kitchenOrderData.orderType = 'dine-in';
-      kitchenOrderData.tableNumber = String(tableNumber);
-    } else {
-      // Takeaway - use delivery type with dummy values
-      kitchenOrderData.orderType = 'delivery';
-      kitchenOrderData.phoneNumber = customerNumber || '0000000000';
-      kitchenOrderData.deliveryAddress = 'Takeaway';
-    }
+      // Check if table has existing active order
+      const table = await Table.findOne({ tableNumber: String(tableNumber) });
 
-    const kitchenOrder = new Order(kitchenOrderData);
-    await kitchenOrder.save();
+      let sessionId;
+      if (table && table.isBooked && table.currentOrderId) {
+        // Get session ID from existing order
+        const existingOrder = await Order.findById(table.currentOrderId);
+        sessionId = existingOrder?.bookingSessionId;
 
-    // If table is selected, update table booking
-    if (tableNumber) {
+        if (
+          existingOrder &&
+          ['pending', 'in-progress'].includes(existingOrder.status)
+        ) {
+          // Add items to existing order
+          existingOrder.items.push(...orderItems);
+          existingOrder.subtotal += total;
+          await existingOrder.save();
+
+          return res.status(201).json({
+            success: true,
+            bill: newBill,
+            message: 'Items added to existing order',
+          });
+        }
+      } else {
+        // Generate new session ID for new booking
+        sessionId = `session_${Date.now()}_${tableNumber}`;
+      }
+
+      // Create new kitchen order with session ID
+      const kitchenOrder = new Order({
+        customerName: customerName || 'Guest',
+        items: orderItems,
+        orderType: 'dine-in',
+        tableNumber: String(tableNumber),
+        paymentMethod: 'counter',
+        subtotal: total,
+        status: 'in-progress',
+        sentToKOT: true,
+        bookingSessionId: sessionId,
+      });
+
+      await kitchenOrder.save();
+
+      // Update table booking
       await Table.findOneAndUpdate(
         { tableNumber: String(tableNumber) },
         {
@@ -86,6 +106,21 @@ export const createBill = async (req, res) => {
           currentOrderId: kitchenOrder._id,
         },
       );
+    } else {
+      // Takeaway order
+      const kitchenOrder = new Order({
+        customerName: customerName || 'Guest',
+        items: orderItems,
+        orderType: 'delivery',
+        phoneNumber: customerNumber || '0000000000',
+        deliveryAddress: 'Takeaway',
+        paymentMethod: 'counter',
+        subtotal: total,
+        status: 'in-progress',
+        sentToKOT: true,
+      });
+
+      await kitchenOrder.save();
     }
 
     res.status(201).json({ success: true, bill: newBill });
@@ -97,7 +132,7 @@ export const createBill = async (req, res) => {
   }
 };
 
-// Add this new function to pos.controller.js
+// Add items to existing order
 export const addItemsToOrder = async (req, res) => {
   try {
     const { tableNumber } = req.params;
@@ -151,20 +186,6 @@ export const addItemsToOrder = async (req, res) => {
       .json({ error: 'Failed to add items', details: err.message });
   }
 };
-
-// Get all bills
-// export const getAllBills = async (req, res) => {
-//   try {
-//     const bills = await Bill.find()
-//       .populate("items.menuItem")
-//       .populate("room")
-//       .populate("servedBy")
-//       .sort({ createdAt: -1 });
-//     res.json(bills);
-//   } catch (err) {
-//     res.status(500).json({ error: "Failed to fetch bills" });
-//   }
-// };
 
 // Get daily sales
 export const getDailySales = async (req, res) => {
@@ -327,7 +348,6 @@ export const transferCreditTo = async (req, res) => {
   }
 };
 
-// In pos.controller.js
 export const getAllBills = async (req, res) => {
   try {
     const bills = await posModel.find().sort({ createdAt: -1 });
@@ -336,6 +356,7 @@ export const getAllBills = async (req, res) => {
     res.status(500).json({ error: 'Failed to fetch bills' });
   }
 };
+
 export const getSalesByTimeRange = async (req, res) => {
   try {
     const { range = 'today' } = req.query;
@@ -351,7 +372,7 @@ export const getSalesByTimeRange = async (req, res) => {
         break;
 
       case 'week':
-        const dayOfWeek = now.getDay(); // 0 (Sun) to 6 (Sat)
+        const dayOfWeek = now.getDay();
         startDate = new Date(now);
         startDate.setDate(now.getDate() - dayOfWeek);
         startDate.setHours(0, 0, 0, 0);

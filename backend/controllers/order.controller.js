@@ -574,3 +574,24 @@ export const getTableBill = async (req, res) => {
     res.status(500).json({ message: 'Server Error' });
   }
 };
+
+// In order.controller.js
+export const getCurrentSessionId = async (req, res) => {
+  try {
+    const { tableNumber } = req.params;
+
+    const table = await Table.findOne({ tableNumber: String(tableNumber) });
+    if (!table || !table.isBooked || !table.currentOrderId) {
+      return res.status(404).json({ message: 'No active booking session' });
+    }
+
+    const currentOrder = await Order.findById(table.currentOrderId);
+    if (!currentOrder) {
+      return res.status(404).json({ message: 'No active order found' });
+    }
+
+    res.json({ sessionId: currentOrder.bookingSessionId });
+  } catch (error) {
+    res.status(500).json({ message: 'Server error' });
+  }
+};

@@ -78,28 +78,57 @@ const Orders = () => {
     }
   };
 
-  const handleGenerateBill = (order) => {
-    const groupedOrders = orders.filter(
-      (o) =>
-        o.orderType === order.orderType &&
-        o.customerName === order.customerName &&
-        (order.orderType === 'dine-in'
-          ? o.tableNumber === order.tableNumber
-          : true),
-    );
+  const handleGenerateBill = async (order) => {
+    try {
+      if (order.orderType === 'dine-in' && order.tableNumber) {
+        // For dine-in orders, get all orders from the same booking session
+        const sessionOrders = orders.filter(
+          (o) =>
+            o.orderType === 'dine-in' &&
+            o.tableNumber === order.tableNumber &&
+            o.bookingSessionId === order.bookingSessionId,
+        );
 
-    const totalAmount = groupedOrders.reduce(
-      (sum, o) => sum + (o.subtotal || 0),
-      0,
-    );
+        const totalAmount = sessionOrders.reduce(
+          (sum, o) => sum + (o.subtotal || 0),
+          0,
+        );
 
-    setBillData({
-      customer: order.customerName,
-      table: order.tableNumber,
-      orderType: order.orderType,
-      orders: groupedOrders,
-      total: totalAmount.toFixed(2),
-    });
+        setBillData({
+          customer: order.customerName,
+          table: order.tableNumber,
+          orderType: order.orderType,
+          orders: sessionOrders,
+          total: totalAmount.toFixed(2),
+          sessionId: order.bookingSessionId,
+        });
+      } else {
+        // For takeaway/delivery orders, group by customer
+        const customerOrders = orders.filter(
+          (o) =>
+            o.orderType === order.orderType &&
+            o.customerName === order.customerName &&
+            new Date(o.createdAt).toDateString() ===
+              new Date(order.createdAt).toDateString(),
+        );
+
+        const totalAmount = customerOrders.reduce(
+          (sum, o) => sum + (o.subtotal || 0),
+          0,
+        );
+
+        setBillData({
+          customer: order.customerName,
+          table: null,
+          orderType: order.orderType,
+          orders: customerOrders,
+          total: totalAmount.toFixed(2),
+        });
+      }
+    } catch (error) {
+      console.error('Error generating bill:', error);
+      alert('Failed to generate bill');
+    }
   };
 
   const handlePrint = () => {
