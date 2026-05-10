@@ -1,6 +1,6 @@
 # 🍽️ Restro ERP – Restaurant & Hotel Management System
 
-A complete **Restaurant & Hotel Management System** built using **Node.js, Express, MongoDB, React, and Vite**.  
+A complete **Restaurant & Hotel Management System** built using **Node.js, Express, MongoDB, React, and Next.js**.  
 This ERP helps restaurants & hotels manage **POS, bookings, rooms, tables, menu items, payments, and reports**.
 
 ---
@@ -58,7 +58,7 @@ This ERP helps restaurants & hotels manage **POS, bookings, rooms, tables, menu 
 ### **Frontend**
 
 - React.js
-- Vite
+- Next.js (App Router)
 - TailwindCSS
 - Axios
 
@@ -74,4 +74,40 @@ This ERP helps restaurants & hotels manage **POS, bookings, rooms, tables, menu 
 - MongoDB (Cloud or Local)
 
 ---
-# restaurent
+
+## ▶️ Run Locally (Two Terminals)
+
+### 1) Backend API
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+Backend env file lives at `backend/.env`.
+
+### 2) Frontend (Next.js)
+
+```bash
+cd client
+npm install
+npm run dev
+```
+
+Set frontend env in `client/.env.local`:
+
+```bash
+NEXT_PUBLIC_API_URL=http://localhost:4000/api/v1
+```
+
+---
+
+## 🏗️ Production Build
+
+Build and run each package separately:
+
+```bash
+cd backend && npm run build && npm run start
+cd client && npm run build && npm run start
+```
