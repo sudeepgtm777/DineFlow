@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "@/lib/router";
 import { FiArrowLeft, FiAlertTriangle } from "react-icons/fi";
 import { endpoints } from "@/lib/api/endpoints";
+import Logo from "@/components/brand/Logo";
 
 const ActiveOrder = () => {
   const navigate = useNavigate();
@@ -102,7 +103,8 @@ const ActiveOrder = () => {
           >
             <FiArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold text-indigo-600">Active Orders</h1>
+          <Logo />
+          <h1 className="ml-3 text-xl font-bold text-gray-800">Active Orders</h1>
         </div>
       </header>
 

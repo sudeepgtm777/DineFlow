@@ -14,6 +14,7 @@ import useCart from '@/hooks/custumer/useCart';
 import { useMenu } from '@/hooks/custumer/useMenu';
 import { useMobileMenu } from '@/hooks/custumer/useMobileMenu';
 import { endpoints } from "@/lib/api/endpoints";
+import Logo from '@/components/brand/Logo';
 
 const GuestUserDashboard = () => {
   const navigate = useNavigate();
@@ -100,7 +101,7 @@ const GuestUserDashboard = () => {
             >
               {isMobileMenuOpen ? <FiX size={24} /> : <FiMenu size={24} />}
             </button>
-            <h1 className='text-xl font-bold text-indigo-600'>DineFlow</h1>
+            <Logo />
           </div>
 
           <div className='hidden md:flex items-center bg-gray-100 rounded-full px-4 py-2 flex-1 max-w-md mx-6'>

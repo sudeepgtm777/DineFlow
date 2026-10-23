@@ -23,6 +23,7 @@ import useSubmitOrder from "@/hooks/custumer/useSubmitOrder";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { endpoints } from "@/lib/api/endpoints";
+import Logo from "@/components/brand/Logo";
 
 const GuestOrder = () => {
   const dispatch = useDispatch();
@@ -179,7 +180,8 @@ const GuestOrder = () => {
           >
             <FiArrowLeft size={20} />
           </button>
-          <h1 className="text-xl font-bold text-indigo-600">Create Order</h1>
+          <Logo />
+          <h1 className="ml-3 text-xl font-bold text-gray-800">Create Order</h1>
         </div>
       </header>
 

@@ -1,5 +1,6 @@
 // @ts-nocheck
 import React from 'react';
+import Logo from '@/components/brand/Logo';
 
 const BillPrint = React.forwardRef(({ cart, subtotal, serviceCharge, total, orderNumber }, ref) => {
   const currentDate = new Date().toLocaleString();
@@ -7,7 +8,9 @@ const BillPrint = React.forwardRef(({ cart, subtotal, serviceCharge, total, orde
   return (
     <div ref={ref} className="p-2 w-64 font-mono text-xs">
       <div className="text-center mb-2">
-        <h1 className="font-bold text-sm">RESTAURANT NAME</h1>
+        <div className="flex justify-center mb-1">
+          <Logo href={null} size="sm" wordmarkClassName="font-bold text-sm text-black" />
+        </div>
         <p>123 Main Street, City</p>
         <p>Phone: 01-2345678</p>
       </div>

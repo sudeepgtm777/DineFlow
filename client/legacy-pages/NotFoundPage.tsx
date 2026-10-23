@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React from "react";
 import { useNavigate } from "@/lib/router";
+import Logo from "@/components/brand/Logo";
 
 const NotFoundPage = () => {
   const navigate = useNavigate();
@@ -13,6 +14,9 @@ const NotFoundPage = () => {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-gray-100 px-4">
       <div className="text-center bg-white p-8 rounded-lg shadow-lg">
+        <div className="flex justify-center mb-6">
+          <Logo href="/" size="lg" />
+        </div>
         <h4 className="text-3xl font-bold text-gray-800 mb-4">
           404: Page Not Found
         </h4>

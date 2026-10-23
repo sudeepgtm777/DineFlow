@@ -1,11 +1,18 @@
 // @ts-nocheck
 import React from "react";
 import { NavLink } from "@/lib/router";
+import Logo from "@/components/brand/Logo";
 
 const Sidebar = (_props: any) => {
   return (
     <div className="h-full w-64 bg-gray-800 text-white p-6">
-      <h1 className="text-3xl font-bold text-center mb-8">Restaurant ERP</h1>
+      <div className="flex justify-center mb-8">
+        <Logo
+          href="/admin/dashboard"
+          size="lg"
+          wordmarkClassName="text-2xl font-bold text-white tracking-tight"
+        />
+      </div>
 
       <ul className="space-y-4">
         {/* Dashboard */}

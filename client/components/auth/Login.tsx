@@ -1,3 +1,5 @@
+"use client";
+
 // @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "@/lib/router";
@@ -6,6 +8,7 @@ import { endpoints } from "@/lib/api/endpoints";
 import { useDispatch, useSelector } from "react-redux";
 import { setLoading, setUser } from "@/lib/redux/authSlice";
 import { Loader2 } from "lucide-react";
+import Logo from "@/components/brand/Logo";
 
 const Login = () => {
     const [input, setInput] = useState({
@@ -73,6 +76,9 @@ const Login = () => {
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
             <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+                <div className="flex justify-center mb-4">
+                    <Logo href="/" size="lg" />
+                </div>
                 <h1 className="text-2xl font-semibold text-center text-gray-700 mb-6">Login</h1>
                 <form onSubmit={submitHandler} className="space-y-4">
                     {/* Email Field */}
