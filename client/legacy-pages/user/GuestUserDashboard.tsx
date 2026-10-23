@@ -303,7 +303,7 @@ const GuestUserDashboard = () => {
                           key={item.cartItemId ?? item._id ?? item.id ?? `${item.name}-${index}`}
                           className='py-4 flex'
                         >
-                          <div className='flex-shrink-0 h-16 w-16 rounded-md overflow-hidden'>
+                          <div className='shrink-0 h-16 w-16 rounded-md overflow-hidden'>
                             <img
                               src={
                                 item?.image?.url ||

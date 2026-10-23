@@ -49,7 +49,7 @@ const RoomsList = () => {
         <Logo href="/" />
       </div>
       {/* Header */}
-      <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-10 px-6 text-center shadow-lg">
+      <div className="bg-linear-to-r from-indigo-500 to-purple-600 text-white py-10 px-6 text-center shadow-lg">
         <h1 className="text-4xl font-bold mb-2">🏨 Book Your Perfect Room</h1>
         <p className="text-lg">Find and book the best rooms for your stay</p>
       </div>

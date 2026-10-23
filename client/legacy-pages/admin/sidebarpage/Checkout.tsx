@@ -33,7 +33,7 @@ const CheckoutPage = () => {
       {/* Printable Content */}
       <div
         ref={printRef}
-        className='p-2 text-sm font-mono w-[300px] bg-white text-black'
+        className='p-2 text-sm font-mono w-75 bg-white text-black'
         style={{ lineHeight: '1.4' }}
       >
         <div className='text-center mb-2'>
@@ -73,7 +73,7 @@ const CheckoutPage = () => {
         <hr className='border-black mb-1' />
 
         {/* Totals */}
-        <div className='text-xs space-y-[2px]'>
+        <div className='text-xs space-y-0.5'>
           <div className='flex justify-between'>
             <span>Subtotal</span>
             <span>Rs. {subtotal.toFixed(2)}</span>
