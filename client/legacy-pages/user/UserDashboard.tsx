@@ -281,7 +281,7 @@ const UserDashboard = () => {
                             key={item.cartItemId ?? item._id ?? item.id ?? `${item.name}-${index}`}
                             className='py-4 flex'
                           >
-                            <div className='flex-shrink-0 h-16 md:h-20 w-16 md:w-20 rounded-md overflow-hidden'>
+                            <div className='shrink-0 h-16 md:h-20 w-16 md:w-20 rounded-md overflow-hidden'>
                               <img
                                 src={item?.image?.url}
                                 alt={item.name}

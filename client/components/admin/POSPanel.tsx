@@ -97,7 +97,7 @@ const POSPanel = ({
   };
 
   return (
-    <div className='w-[300px] mx-auto p-4 font-mono text-sm bg-white'>
+    <div className='w-75 mx-auto p-4 font-mono text-sm bg-white'>
       {cart.length === 0 ? (
         <div className='text-center text-gray-400'>Cart is empty</div>
       ) : (
