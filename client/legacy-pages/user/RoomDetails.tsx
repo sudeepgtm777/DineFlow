@@ -4,6 +4,7 @@ import { useParams } from "@/lib/router";
 import api from "@/lib/axios";
 import RoomGallery from "@/components/custumer/RoomGallery";
 import { endpoints } from "@/lib/api/endpoints";
+import Logo from "@/components/brand/Logo";
 
 const RoomDetails = () => {
   const { roomNumber } = useParams();
@@ -46,6 +47,9 @@ const RoomDetails = () => {
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto">
+        <div className="mb-6">
+          <Logo href="/rooms" />
+        </div>
         {/* Room Header */}
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">Room {room?.roomNumber}</h1>

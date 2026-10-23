@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import RoomCard from "@/components/custumer/RoomCard";
 import { endpoints } from "@/lib/api/endpoints";
+import Logo from "@/components/brand/Logo";
 
 const RoomsList = () => {
   const [rooms, setRooms] = useState([]);
@@ -44,6 +45,9 @@ const RoomsList = () => {
 
   return (
     <div className="bg-gray-100 min-h-screen">
+      <div className="bg-white px-6 py-3 shadow-sm">
+        <Logo href="/" />
+      </div>
       {/* Header */}
       <div className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white py-10 px-6 text-center shadow-lg">
         <h1 className="text-4xl font-bold mb-2">🏨 Book Your Perfect Room</h1>

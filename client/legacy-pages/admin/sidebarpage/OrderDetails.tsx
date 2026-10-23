@@ -3,6 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from '@/lib/router';
 import { FiArrowLeft, FiPrinter, FiAlertTriangle } from 'react-icons/fi';
 import { endpoints } from "@/lib/api/endpoints";
+import Logo from '@/components/brand/Logo';
 
 const OrderDetails = () => {
   const { tableNumber } = useParams();
@@ -195,6 +196,9 @@ const OrderDetails = () => {
 
       <div ref={printRef} className='max-w-2xl mx-auto bg-white p-6 shadow-sm'>
         <div className='print-header'>
+          <div className='flex justify-center mb-3'>
+            <Logo href={null} size="lg" />
+          </div>
           <h1 className='text-3xl font-bold mb-1'>{restaurantInfo.name}</h1>
           <p className='text-sm'>{restaurantInfo.address}</p>
           <p className='text-sm'>Tel: {restaurantInfo.phone}</p>

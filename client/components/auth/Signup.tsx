@@ -1,3 +1,5 @@
+"use client";
+
 // @ts-nocheck
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from '@/lib/router';
@@ -6,6 +8,7 @@ import { Loader2 } from 'lucide-react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
 import useSignup from '@/hooks/auth/useSignup';
+import Logo from '@/components/brand/Logo';
 
 const Signup = () => {
   const { loading, submitHandler } = useSignup();
@@ -51,6 +54,9 @@ const Signup = () => {
         onSubmit={formik.handleSubmit}
         className='w-1/2 border border-gray-200 rounded-md p-4 my-10'
       >
+        <div className='flex justify-center mb-4'>
+          <Logo href="/" size="lg" />
+        </div>
         <h1 className='font-bold text-xl mb-5'>Sign Up</h1>
 
         {['fullname', 'email', 'phoneNumber', 'password'].map((field) => (

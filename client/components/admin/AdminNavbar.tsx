@@ -6,6 +6,7 @@ import api from "@/lib/axios";
 import { setUser } from "@/lib/redux/authSlice"; 
 import { endpoints } from "@/lib/api/endpoints";
 import { toast } from "react-toastify";
+import Logo from "@/components/brand/Logo";
 
 const AdminNavbar = ({ toggleSidebar }: any) => {
   const { user } = useSelector((store: any) => store.auth);
@@ -63,7 +64,12 @@ const AdminNavbar = ({ toggleSidebar }: any) => {
           ></path>
         </svg>
       </button>
-      <h2 className="text-lg font-semibold">Admin Dashboard</h2>
+      <div className="flex items-center gap-3">
+        <span className="lg:hidden">
+          <Logo href="/admin/dashboard" size="sm" />
+        </span>
+        <h2 className="text-lg font-semibold">Admin Dashboard</h2>
+      </div>
 
       <div className="relative" ref={dropdownRef}>
         <button

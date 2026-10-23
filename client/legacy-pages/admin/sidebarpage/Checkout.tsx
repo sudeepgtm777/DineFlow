@@ -1,6 +1,7 @@
 // @ts-nocheck
 import React, { useRef } from 'react';
 import { useSelector } from 'react-redux';
+import Logo from '@/components/brand/Logo';
 
 const CheckoutPage = () => {
   const printRef = useRef();
@@ -36,7 +37,9 @@ const CheckoutPage = () => {
         style={{ lineHeight: '1.4' }}
       >
         <div className='text-center mb-2'>
-          <h1 className='font-bold text-base'>🧾 DineFlow</h1>
+          <div className='flex justify-center mb-1'>
+            <Logo href={null} size="sm" wordmarkClassName="font-bold text-base text-black" />
+          </div>
           <p className='text-xs'>Thank you for dining with us!</p>
           <hr className='my-1 border-black' />
         </div>
