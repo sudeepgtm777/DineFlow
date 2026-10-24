@@ -80,6 +80,4 @@ export const NavLink = ({ className, to, href, ...props }: NavLinkProps) => {
   return <Link href={target} className={computedClassName} {...props} />;
 };
 
-export const Outlet = () => null;
-
 export { RouterLink as Link };
