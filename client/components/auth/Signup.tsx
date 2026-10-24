@@ -1,9 +1,8 @@
 "use client";
 
-// @ts-nocheck
 import React, { useEffect } from 'react';
 import { Link, useNavigate } from '@/lib/router';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '@/lib/redux/hooks';
 import { Loader2 } from 'lucide-react';
 import { useFormik } from 'formik';
 import * as Yup from 'yup';
@@ -12,7 +11,7 @@ import Logo from '@/components/brand/Logo';
 
 const Signup = () => {
   const { loading, submitHandler } = useSignup();
-  const { user } = useSelector((store: any) => store.auth);
+  const { user } = useAppSelector((store) => store.auth);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -75,7 +74,7 @@ const Signup = () => {
               className='w-full px-3 py-2 border border-gray-300 rounded-md'
             />
             {formik.touched[field] && formik.errors[field] && (
-              <p className='text-red-500 text-sm'>{formik.errors[field]}</p>
+              <p className='text-red-500 text-sm'>{String(formik.errors[field])}</p>
             )}
           </div>
         ))}
@@ -99,7 +98,7 @@ const Signup = () => {
             </div>
           </div>
           {formik.touched.role && formik.errors.role && (
-            <p className='text-red-500 text-sm'>{formik.errors.role}</p>
+            <p className='text-red-500 text-sm'>{String(formik.errors.role)}</p>
           )}
 
           {/* Profile Image Upload */}
@@ -111,7 +110,7 @@ const Signup = () => {
               id='profile'
               name='image'
               onChange={(event) =>
-                formik.setFieldValue('image', event.currentTarget.files[0])
+                formik.setFieldValue('image', event.currentTarget.files?.[0])
               }
               className='cursor-pointer'
             />
