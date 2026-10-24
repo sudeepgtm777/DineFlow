@@ -1,9 +1,11 @@
-// @ts-nocheck
 import jwt from "jsonwebtoken";
 
 const isAuthenticated = async (req, res, next) => {
     try {
-        const token = req.cookies?.token;
+        const bearer = req.headers.authorization?.startsWith('Bearer ')
+            ? req.headers.authorization.slice(7)
+            : null;
+        const token = req.cookies?.token || bearer;
         if (!token) {
             return res.status(401).json({
                 message: "User not authenticated",
@@ -11,7 +13,9 @@ const isAuthenticated = async (req, res, next) => {
             });
         }
 
-        const decode = jwt.verify(token, process.env.JWT_SECRET);
+        const decode = jwt.verify(token, process.env.JWT_SECRET) as jwt.JwtPayload & {
+          userId?: string;
+        };
         req.id = decode?.userId;
         
         if (!req.id) {
@@ -27,7 +31,6 @@ const isAuthenticated = async (req, res, next) => {
         return res.status(401).json({
             message: "Authentication failed",
             success: false,
-            error: error.message,
         });
     }
 };
