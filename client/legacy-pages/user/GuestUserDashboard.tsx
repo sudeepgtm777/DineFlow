@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import {
   FiShoppingCart,
@@ -10,11 +9,13 @@ import {
   FiList,
 } from 'react-icons/fi';
 import { useNavigate, useSearchParams } from '@/lib/router';
-import useCart from '@/hooks/custumer/useCart';
-import { useMenu } from '@/hooks/custumer/useMenu';
-import { useMobileMenu } from '@/hooks/custumer/useMobileMenu';
+import useCart from '@/hooks/customer/useCart';
+import { useMenu } from '@/hooks/customer/useMenu';
+import { useMobileMenu } from '@/hooks/customer/useMobileMenu';
 import { endpoints } from "@/lib/api/endpoints";
 import Logo from '@/components/brand/Logo';
+import api from '@/lib/axios';
+import { toast } from 'react-toastify';
 
 const GuestUserDashboard = () => {
   const navigate = useNavigate();
@@ -45,8 +46,8 @@ const GuestUserDashboard = () => {
 
   const { isMobileMenuOpen, setIsMobileMenuOpen } = useMobileMenu();
 
-  const [activeOrder, setActiveOrder] = useState(null);
-  const [error, setError] = useState(null);
+  const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [error, setError] = useState<any>(null);
 
   // Fetch active order for other functionality (e.g., active orders page)
   useEffect(() => {
@@ -54,15 +55,12 @@ const GuestUserDashboard = () => {
 
     const fetchActiveOrder = async () => {
       try {
-        const response = await fetch(
-          `${endpoints.order}/orders/active?tableNumber=${tableNumber}`,
+        const { data } = await api.get(
+          `${endpoints.order}/orders/active`,
+          { params: { tableNumber } },
         );
-        const data = await response.json();
-        if (response.ok && data.order) {
-          setActiveOrder(data.order);
-        } else {
-          setActiveOrder(null);
-        }
+        const current = data.orders?.[0] || data.order || null;
+        setActiveOrder(current);
       } catch (err) {
         console.error('Error fetching active order:', err);
         setError('Failed to fetch active order');
@@ -75,11 +73,11 @@ const GuestUserDashboard = () => {
   // Handle proceeding to checkout for cart items
   const handleProceedToCheckout = () => {
     if (!tableNumber) {
-      alert('Missing table number.');
+      toast.error('Missing table number.');
       return;
     }
     if (cart.length === 0) {
-      alert('Your cart is empty.');
+      toast.error('Your cart is empty.');
       return;
     }
     navigate(`/guest-checkout?table=${tableNumber}`);
@@ -271,7 +269,7 @@ const GuestUserDashboard = () => {
       {isCartOpen && (
         <div className='fixed inset-0 z-30 overflow-hidden'>
           <div
-            className='absolute inset-0 bg-black bg-opacity-50'
+            className='absolute inset-0 bg-black/50'
             onClick={() => setIsCartOpen(false)}
           ></div>
           <div className='absolute inset-y-0 right-0 max-w-full flex'>
@@ -306,7 +304,9 @@ const GuestUserDashboard = () => {
                           <div className='shrink-0 h-16 w-16 rounded-md overflow-hidden'>
                             <img
                               src={
-                                item?.image?.url ||
+                                (typeof item?.image === "string"
+                                  ? item.image
+                                  : item?.image?.url) ||
                                 'https://via.placeholder.com/64'
                               }
                               alt={item.name}

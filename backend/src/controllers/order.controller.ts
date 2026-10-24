@@ -1,6 +1,6 @@
-// @ts-nocheck
 import Order from '../models/order.model';
 import Table from '../models/table.model';
+import resolveOrderItems from '../utils/resolveOrderItems';
 
 export const createOrder = async (req, res) => {
   try {
@@ -15,29 +15,18 @@ export const createOrder = async (req, res) => {
       subtotal,
     } = req.body;
 
-    // Basic validations
-    if (!items || items.length === 0) {
-      return res.status(400).json({ message: 'No order items' });
+    let pricedItems;
+    try {
+      pricedItems = await resolveOrderItems(items);
+    } catch (resolveError) {
+      const err = resolveError as Error & { status?: number };
+      return res
+        .status(err.status || 400)
+        .json({ message: err.message });
     }
 
-    for (let item of items) {
-      if (!item.name || typeof item.name !== 'string') {
-        return res
-          .status(400)
-          .json({ message: `Item name is required and should be a string` });
-      }
-      if (typeof item.quantity !== 'number' || item.quantity <= 0) {
-        return res
-          .status(400)
-          .json({ message: `Item quantity must be a positive number` });
-      }
-      if (typeof item.price !== 'number' || item.price <= 0) {
-        return res
-          .status(400)
-          .json({ message: `Item price must be a positive number` });
-      }
-    }
-
+    let dineInTable = null;
+    let bookingSessionId;
     if (orderType === 'dine-in') {
       if (!tableNumber) {
         return res
@@ -45,32 +34,20 @@ export const createOrder = async (req, res) => {
           .json({ message: 'Table number is required for dine-in' });
       }
 
-      // Check if table exists
-      const table = await Table.findOne({ tableNumber });
-      if (!table) {
+      dineInTable = await Table.findOne({ tableNumber });
+      if (!dineInTable) {
         return res
           .status(404)
           .json({ message: `Table number ${tableNumber} not found` });
       }
 
-      // Check for active orders (pending or in-progress) for the table
-      const activeOrder = await Order.findOne({
-        tableNumber,
-        orderType: 'dine-in',
-        status: { $in: ['pending', 'in-progress'] },
-      });
-
-      // if (activeOrder) {
-      //   return res.status(400).json({
-      //     message: `An active order (ID: ${activeOrder._id}) exists for table ${tableNumber}. Add items to the existing order.`,
-      //     orderId: activeOrder._id,
-      //   });
-      // }
-
-      // Check if table is booked (should be false since no active order)
-      // if (table.isBooked) {
-      //   return res.status(400).json({ message: `Table number ${tableNumber} is already booked` });
-      // }
+      if (dineInTable.isBooked && dineInTable.currentOrderId) {
+        const existingOrder = await Order.findById(dineInTable.currentOrderId);
+        bookingSessionId = existingOrder?.bookingSessionId;
+      }
+      if (!bookingSessionId) {
+        bookingSessionId = `session_${Date.now()}_${tableNumber}`;
+      }
     }
 
     if (orderType === 'delivery' && !deliveryAddress) {
@@ -81,16 +58,17 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: 'Invalid payment method' });
     }
 
-    const calculatedSubtotal =
-      subtotal ||
-      items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+    const calculatedSubtotal = pricedItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
 
     // Create new order
     const order = new Order({
       customerName,
-      items,
+      items: pricedItems,
       orderType,
-      ...(orderType === 'dine-in' && { tableNumber }),
+      ...(orderType === 'dine-in' && { tableNumber, bookingSessionId }),
       ...(orderType === 'delivery' && { deliveryAddress }),
       ...(specialInstructions && { specialInstructions }),
       paymentMethod,
@@ -165,27 +143,14 @@ export const addItemToOrder = async (req, res) => {
   const { newItems, tableNumber } = req.body;
 
   try {
-    // Validate new items
-    if (!newItems || !Array.isArray(newItems) || newItems.length === 0) {
-      return res.status(400).json({ message: 'No new items provided' });
-    }
-
-    for (let item of newItems) {
-      if (!item.name || typeof item.name !== 'string') {
-        return res
-          .status(400)
-          .json({ message: `Item name is required and should be a string` });
-      }
-      if (typeof item.quantity !== 'number' || item.quantity <= 0) {
-        return res
-          .status(400)
-          .json({ message: `Item quantity must be a positive number` });
-      }
-      if (typeof item.price !== 'number' || item.price <= 0) {
-        return res
-          .status(400)
-          .json({ message: `Item price must be a positive number` });
-      }
+    let pricedItems;
+    try {
+      pricedItems = await resolveOrderItems(newItems);
+    } catch (resolveError) {
+      const err = resolveError as Error & { status?: number };
+      return res
+        .status(err.status || 400)
+        .json({ message: err.message });
     }
 
     // Find the order
@@ -217,7 +182,7 @@ export const addItemToOrder = async (req, res) => {
           .status(404)
           .json({ message: `Table number ${tableNumber} not found` });
       }
-      if (!table.isBooked || table.currentOrderId.toString() !== orderId) {
+      if (!table.isBooked || table.currentOrderId?.toString() !== orderId) {
         return res
           .status(400)
           .json({ message: 'Table is not booked for this order' });
@@ -225,8 +190,8 @@ export const addItemToOrder = async (req, res) => {
     }
 
     // Add new items and update subtotal
-    order.items.push(...newItems);
-    order.subtotal += newItems.reduce(
+    order.items.push(...pricedItems);
+    order.subtotal += pricedItems.reduce(
       (acc, item) => acc + item.price * item.quantity,
       0,
     );
@@ -263,6 +228,7 @@ export const getFilteredOrders = async (req, res) => {
         startDate.setHours(0, 0, 0, 0);
         break;
       case 'yearly':
+        startDate = new Date();
         startDate = new Date(startDate.getFullYear(), 0, 1);
         startDate.setHours(0, 0, 0, 0);
         break;
@@ -407,7 +373,6 @@ export const completeOrder = async (req, res) => {
     const updateResult = await Order.updateMany(
       query,
       { $set: { status: 'completed' } },
-      { new: true },
     );
 
     console.log('Update result:', updateResult);

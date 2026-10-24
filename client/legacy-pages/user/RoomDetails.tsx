@@ -1,20 +1,20 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { useParams } from "@/lib/router";
 import api from "@/lib/axios";
-import RoomGallery from "@/components/custumer/RoomGallery";
+import RoomGallery from "@/components/customer/RoomGallery";
 import { endpoints } from "@/lib/api/endpoints";
 import Logo from "@/components/brand/Logo";
+import { toast } from "react-toastify";
 
 const RoomDetails = () => {
   const { roomNumber } = useParams();
-  const [room, setRoom] = useState(null);
+  const [room, setRoom] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState({ customerName: "", contactNumber: "" });
   const [message, setMessage] = useState({ text: "", type: "" });
 
   useEffect(() => {
-    axios
+    api
       .get(`${endpoints.room}/${roomNumber}`)
       .then((res) => setRoom(res.data))
       .catch((err) => console.error(err));
@@ -59,7 +59,13 @@ const RoomDetails = () => {
         {/* Image Gallery */}
         <div className="mb-10 rounded-2xl overflow-hidden shadow-xl">
           <RoomGallery 
-            photos={room.photos.length ? room.photos : [room.qrImage]} 
+            photos={
+              room.photos?.length
+                ? room.photos
+                : room.qrImage
+                  ? [typeof room.qrImage === "string" ? { url: room.qrImage } : room.qrImage]
+                  : []
+            } 
             className="w-full h-64 sm:h-80 md:h-96 object-cover"
           />
         </div>

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import mongoose from 'mongoose';
 
 const orderSchema = new mongoose.Schema(
@@ -79,6 +78,7 @@ const orderSchema = new mongoose.Schema(
     createdAt: { type: Date, default: Date.now },
   },
   {
+    timestamps: true,
     toJSON: { virtuals: true },
     toObject: { virtuals: true },
   },
