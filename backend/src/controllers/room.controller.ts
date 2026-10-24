@@ -1,4 +1,3 @@
-// @ts-nocheck
 import Room from "../models/room.model";
 import Order from "../models/order.model";
 import QRCode from "qrcode";
@@ -38,7 +37,7 @@ export const createRoom = async (req, res) => {
     });
 
     // Generate QR code URL for the room
-    const qrUrl = `https://restro-erp.onrender.com/order?room=${roomNumber}`;
+    const qrUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order?room=${roomNumber}`;
 
     // Generate QR code and save temporarily
     const tempDir = path.resolve("./tmp");
@@ -84,7 +83,7 @@ export const createRoom = async (req, res) => {
       }
     }
 
-    room.photos = photos;
+    room.photos = photos as typeof room.photos;
 
     // Save room document
     await room.save();
@@ -175,7 +174,7 @@ export const updateRoom = async (req, res) => {
         });
       }
 
-      room.photos = newPhotos;
+      room.photos = newPhotos as typeof room.photos;
     }
 
     await room.save();
@@ -334,7 +333,7 @@ export const deleteRoomPhoto = async (req, res) => {
     await cloudinary.uploader.destroy(public_id);
 
     // Remove from DB
-    room.photos = room.photos.filter((photo) => photo.public_id !== public_id);
+    room.photos = room.photos.filter((photo) => photo.public_id !== public_id) as typeof room.photos;
 
     await room.save();
     res.status(200).json({ message: "Photo deleted successfully", room });
