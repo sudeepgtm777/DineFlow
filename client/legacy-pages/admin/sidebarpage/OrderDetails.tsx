@@ -1,17 +1,18 @@
-// @ts-nocheck
 import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from '@/lib/router';
 import { FiArrowLeft, FiPrinter, FiAlertTriangle } from 'react-icons/fi';
 import { endpoints } from "@/lib/api/endpoints";
 import Logo from '@/components/brand/Logo';
+import api from '@/lib/axios';
+import { toast } from 'react-toastify';
 
 const OrderDetails = () => {
   const { tableNumber } = useParams();
   const navigate = useNavigate();
-  const printRef = useRef();
+  const printRef = useRef<any>();
 
-  const [orders, setOrders] = useState([]);
-  const [error, setError] = useState(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [error, setError] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [restaurantInfo] = useState({
     name: 'DineFlow Restaurant',
@@ -34,16 +35,11 @@ const OrderDetails = () => {
         console.log(
           `Fetching orders from: ${endpoints.order}/orders/active?tableNumber=${tableNumber}`,
         );
-        const res = await fetch(
-          `${endpoints.order}/orders/active?tableNumber=${tableNumber}`,
+        const { data } = await api.get(
+          `${endpoints.order}/orders/active`,
+          { params: { tableNumber } },
         );
-        const data = await res.json();
-
-        if (res.ok) {
-          setOrders(data.orders || []);
-        } else {
-          setError(data.message || 'Failed to fetch order details');
-        }
+        setOrders(data.orders || []);
       } catch (err) {
         console.error('Error fetching orders:', err);
         setError('Failed to fetch order details');
@@ -61,20 +57,10 @@ const OrderDetails = () => {
         throw new Error('Table number is missing');
       }
 
-      const response = await fetch(`${endpoints.order}/orders/complete`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ tableNumber }),
-      });
-
-      const result = await response.json();
-      console.log('API Response:', result);
-
-      if (!response.ok) {
-        throw new Error(result.message || 'Failed to complete orders');
-      }
+      const { data: result } = await api.put(
+        `${endpoints.order}/orders/complete`,
+        { tableNumber },
+      );
 
       if (result.matchedCount === 0) {
         throw new Error('No active orders found to complete');
@@ -133,7 +119,7 @@ const OrderDetails = () => {
       window.location.reload();
     } catch (error) {
       console.error('Error completing orders:', error);
-      alert(`Failed to complete orders: ${error.message}`);
+      toast.error(`Failed to complete orders: ${error.message}`);
     }
   };
 

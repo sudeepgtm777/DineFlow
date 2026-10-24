@@ -1,9 +1,8 @@
-// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import POSPanel from '@/components/admin/POSPanel';
-import { useMenu } from '@/hooks/custumer/useMenu';
+import { useMenu } from '@/hooks/customer/useMenu';
 import usePOSCart from '@/hooks/usePOSCart';
-import { useTables } from '@/hooks/useBill';
+import { useTables } from '@/hooks/useTables';
 import { useSearchParams } from '@/lib/router';
 
 const AdminPOSPage = () => {

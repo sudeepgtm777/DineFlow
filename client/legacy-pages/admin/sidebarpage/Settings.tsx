@@ -1,11 +1,10 @@
-// @ts-nocheck
 import React, { useState, useEffect } from 'react';
 import api from '@/lib/axios';
 import { endpoints } from "@/lib/api/endpoints";
 import { toast } from 'react-toastify';
 
 const Settings = () => {
-  const [users, setUsers] = useState([]);
+  const [users, setUsers] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState('users');
 

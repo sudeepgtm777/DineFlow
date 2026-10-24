@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useRef } from "react";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
@@ -36,19 +35,19 @@ const validationSchema = Yup.object().shape({
     .required("Main image is required")
     .test("fileSize", "File too large (max 5MB)", (value) => {
       if (!value) return true;
-      return value.size <= 5 * 1024 * 1024;
+      return (value as File).size <= 5 * 1024 * 1024;
     })
     .test("fileType", "Unsupported file format", (value) => {
       if (!value) return true;
-      return ["image/jpeg", "image/png", "image/gif"].includes(value.type);
+      return ["image/jpeg", "image/png", "image/gif"].includes((value as File).type);
     }),
 });
 
 const AddMenuItem = () => {
   const { addItem, loading } = useAddNewItem();
   const navigate = useNavigate();
-  const [imagePreview, setImagePreview] = useState(null);
-  const fileInputRef = useRef(null);
+  const [imagePreview, setImagePreview] = useState<any>(null);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const handleSuccess = () => {
     toast.success("Menu item added successfully!");
@@ -208,7 +207,7 @@ const AddMenuItem = () => {
                 name="image"
                 ref={fileInputRef}
                 onChange={(e) => {
-                  const file = e.currentTarget.files[0];
+                  const file = e.currentTarget.files?.[0];
                   setFieldValue("image", file);
                   if (file) {
                     const reader = new FileReader();
@@ -249,7 +248,7 @@ const AddMenuItem = () => {
       </Formik>
 
       {loading && (
-        <div className="absolute inset-0 flex justify-center items-center bg-opacity-50 z-50">
+        <div className="absolute inset-0 flex justify-center items-center bg-black/50 z-50">
           <div className="flex justify-center items-center">
             <span>Loading...</span>
           </div>

@@ -1,11 +1,11 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import moment from "moment";
 import { endpoints } from "@/lib/api/endpoints";
+import { toast } from "react-toastify";
 
 const AdminRoomBookings = () => {
-  const [bookings, setBookings] = useState([]);
+  const [bookings, setBookings] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // Fetch bookings from API
@@ -37,7 +37,7 @@ const AdminRoomBookings = () => {
       fetchBookings();
     } catch (err) {
       console.error("Error updating status:", err);
-      alert("Failed to update booking status.");
+      toast.error("Failed to update booking status.");
     }
   };
 

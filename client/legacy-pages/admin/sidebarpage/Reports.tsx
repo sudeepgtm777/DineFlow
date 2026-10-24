@@ -1,4 +1,3 @@
-// @ts-nocheck
 // src/pages/Reports.jsx
 import React, { useEffect, useState } from 'react';
 import api from '@/lib/axios';
@@ -11,9 +10,9 @@ import { endpoints } from "@/lib/api/endpoints";
 const COLORS = ['#8884d8', '#82ca9d', '#ffc658', '#FF8042', '#0088FE'];
 
 const Reports = () => {
-  const [daily, setDaily] = useState(null);
-  const [monthly, setMonthly] = useState(null);
-  const [topItems, setTopItems] = useState([]);
+  const [daily, setDaily] = useState<any>(null);
+  const [monthly, setMonthly] = useState<any>(null);
+  const [topItems, setTopItems] = useState<any[]>([]);
 
   useEffect(() => {
     api.get(`${endpoints.pos}/daily-sales`, { withCredentials: true }).then(res => setDaily(res.data));

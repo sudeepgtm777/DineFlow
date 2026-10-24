@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React, { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { ToastContainer, toast } from "react-toastify";
@@ -8,13 +7,13 @@ import "react-toastify/dist/ReactToastify.css";
 import { endpoints } from "@/lib/api/endpoints";
 
 const RoomManager = () => {
-  const [rooms, setRooms] = useState([]);
+  const [rooms, setRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [creatingRoom, setCreatingRoom] = useState(false);
-  const [dropdownOpenId, setDropdownOpenId] = useState(null);
+  const [dropdownOpenId, setDropdownOpenId] = useState<any>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [selectedPhotos, setSelectedPhotos] = useState([]);
-  const [editingRoomId, setEditingRoomId] = useState(null);
+  const [selectedPhotos, setSelectedPhotos] = useState<any[]>([]);
+  const [editingRoomId, setEditingRoomId] = useState<any>(null);
 
   const [formData, setFormData] = useState({
     roomNumber: "",
@@ -69,10 +68,10 @@ const RoomManager = () => {
     try {
       setCreatingRoom(true);
       const roomPayload = new FormData();
-      roomPayload.append("roomNumber", Number(formData.roomNumber));
+      roomPayload.append("roomNumber", String(formData.roomNumber));
       roomPayload.append("roomType", formData.roomType);
-      roomPayload.append("capacity", formData.capacity);
-      roomPayload.append("pricePerNight", Number(formData.pricePerNight));
+      roomPayload.append("capacity", String(formData.capacity));
+      roomPayload.append("pricePerNight", String(formData.pricePerNight));
       roomPayload.append(
         "amenities",
         JSON.stringify(formData.amenities.split(",").map((a) => a.trim()))
@@ -206,7 +205,7 @@ const RoomManager = () => {
       </button>
 
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white rounded-lg p-6 w-full max-w-2xl relative">
             <button
               onClick={() => {
@@ -254,7 +253,7 @@ const RoomManager = () => {
                 value={formData.capacity}
                 placeholder="Capacity"
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, capacity: e.target.value }))
+                  setFormData((prev) => ({ ...prev, capacity: Number(e.target.value) }))
                 }
                 className="border border-gray-300 rounded px-3 py-2 w-full"
               />

@@ -1,17 +1,17 @@
-// @ts-nocheck
 import React, { useState, useEffect, useRef } from 'react';
 import api from '@/lib/axios';
 import { endpoints } from "@/lib/api/endpoints";
+import { toast } from 'react-toastify';
 
 const Orders = () => {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [orderTypeFilter, setOrderTypeFilter] = useState('all');
   const [dateFilter, setDateFilter] = useState('day');
   const [statusFilter, setStatusFilter] = useState('all');
   const [loading, setLoading] = useState(true);
-  const [billData, setBillData] = useState(null);
-  const [updatingStatus, setUpdatingStatus] = useState(null);
+  const [billData, setBillData] = useState<any>(null);
+  const [updatingStatus, setUpdatingStatus] = useState<any>(null);
   const [page, setPage] = useState(1);
   const [limit] = useState(10);
   const [totalPages, setTotalPages] = useState(1);
@@ -25,7 +25,7 @@ const Orders = () => {
       );
       const sortedOrders = Array.isArray(data.orders)
         ? [...data.orders].sort(
-            (a, b) => new Date(b.createdAt) - new Date(a.createdAt),
+            (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
           )
         : [];
       setOrders(sortedOrders);
@@ -56,7 +56,7 @@ const Orders = () => {
       );
     } catch (error) {
       console.error('Failed to update status:', error);
-      alert('Failed to update status. Please try again.');
+      toast.error('Failed to update status. Please try again.');
     } finally {
       setUpdatingStatus(null);
     }
@@ -72,10 +72,10 @@ const Orders = () => {
             : order,
         ),
       );
-      alert('Order sent to KOT successfully!');
+      toast.success('Order sent to KOT successfully!');
     } catch (err) {
       console.error('Error sending to KOT', err);
-      alert('Failed to send to KOT. Please try again.');
+      toast.error('Failed to send to KOT. Please try again.');
     }
   };
 
@@ -128,13 +128,13 @@ const Orders = () => {
       }
     } catch (error) {
       console.error('Error generating bill:', error);
-      alert('Failed to generate bill');
+      toast.error('Failed to generate bill');
     }
   };
 
   const handlePrint = () => {
     if (!billData) {
-      alert('Please generate a bill first');
+      toast.error('Please generate a bill first');
       return;
     }
     window.print();
@@ -373,7 +373,7 @@ const Orders = () => {
 
       {/* Bill Modal */}
       {billData && (
-        <div className='fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50'>
+        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
           <div className='bg-white p-6 rounded-lg max-w-md w-full mx-4'>
             <div ref={billRef} id='bill-content'>
               <h2 className='text-xl font-bold mb-4 text-center'>Bill</h2>

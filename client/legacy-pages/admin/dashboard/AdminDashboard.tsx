@@ -1,4 +1,3 @@
-// @ts-nocheck
 // src/components/AdminDashboard.js
 import React from "react";
 import { Link } from "@/lib/router";
@@ -8,6 +7,7 @@ import useOrderStats from "@/hooks/useOrderStats";
 import useDailySales from "@/hooks/useDailySales";
 import useTotalMenuItems from "@/hooks/useTotalMenuItems";
 import useTableStats from "@/hooks/useTableStats";
+import { ShoppingBag, DollarSign, UtensilsCrossed, Plus, UserPlus, Boxes, Calendar } from "lucide-react";
 
 const AdminDashboard = () => {
   const { totalOrders, loading: ordersLoading, error: ordersError } = useOrderStats();
@@ -23,7 +23,7 @@ const AdminDashboard = () => {
         <div className="flex justify-between items-start mb-4">
           <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{title}</h3>
           <div className={`p-2 rounded-lg bg-${color}-100 text-${color}-600`}>
-            <i className={`fas fa-${icon}`}></i>
+            {icon}
           </div>
         </div>
         <div className="flex-1 flex items-end">
@@ -79,7 +79,7 @@ const AdminDashboard = () => {
           <StatCard
             title="Total Orders"
             value={totalOrders || 0}
-            icon="shopping-bag"
+            icon={<ShoppingBag className="w-5 h-5" />}
             color="blue"
             loading={ordersLoading}
             error={ordersError}
@@ -88,7 +88,7 @@ const AdminDashboard = () => {
         <StatCard
   title="Total Sales Today"
   value={`Rs. ${dailySales.totalSales || 0}`}
-  icon="dollar-sign"
+  icon={<DollarSign className="w-5 h-5" />}
   color="green"
   loading={salesLoading}
   error={salesError}
@@ -98,7 +98,7 @@ const AdminDashboard = () => {
           <StatCard
             title="Menu Items"
             value={totalMenuItems || 0}
-            icon="utensils"
+            icon={<UtensilsCrossed className="w-5 h-5" />}
             color="purple"
             loading={menuLoading}
             error={menuError}
@@ -151,7 +151,7 @@ const AdminDashboard = () => {
             className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-300 hover:border-blue-500 hover:shadow-md transition-all flex items-center justify-center flex-col"
           >
             <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-3">
-              <i className="fas fa-plus text-xl"></i>
+              <Plus className="w-5 h-5" />
             </div>
             <h3 className="font-medium text-gray-700">Add Menu Item</h3>
             <p className="text-sm text-gray-500 text-center mt-1">Create a new dish for your menu</p>
@@ -184,7 +184,7 @@ const AdminDashboard = () => {
             className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-300 hover:border-purple-500 hover:shadow-md transition-all flex items-center justify-center flex-col"
           >
             <div className="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center mb-3">
-              <i className="fas fa-calendar-alt text-xl"></i>
+              <Calendar className="w-5 h-5" />
             </div>
             <h3 className="font-medium text-gray-700">View Reservations</h3>
             <p className="text-sm text-gray-500 text-center mt-1">Check upcoming bookings</p>
