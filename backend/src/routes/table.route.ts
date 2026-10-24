@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import {
   createTable,
@@ -11,16 +10,27 @@ import {
   toggleTableBooking,
 } from '../controllers/table.controller';
 import isAuthenticated from '../middlewares/isAuthenticated';
+import isAdmin from '../middlewares/isAdmin';
 
 const router = express.Router();
 
-router.post('/createtable', isAuthenticated, createTable);
-router.get('/gettables', isAuthenticated, getAllTables);
-router.get('/totaldocuments', getTableBookingStatusCounts); // Specific route before dynamic
-router.get('/:tableNumber', getTableByNumber); // Dynamic route after
-router.put('/release/:tableNumber', isAuthenticated, releaseTable);
-router.put('/toggle-booking/:tableId', isAuthenticated, toggleTableBooking);
-router.get('/get-qrcodes', getAllTableQRCodes);
-router.delete('/delete/:tableId', isAuthenticated, deleteTable);
+router.post('/createtable', isAuthenticated, isAdmin, createTable);
+router.get('/gettables', isAuthenticated, isAdmin, getAllTables);
+router.get(
+  '/totaldocuments',
+  isAuthenticated,
+  isAdmin,
+  getTableBookingStatusCounts,
+);
+router.get('/get-qrcodes', isAuthenticated, isAdmin, getAllTableQRCodes);
+router.get('/:tableNumber', getTableByNumber);
+router.put('/release/:tableNumber', isAuthenticated, isAdmin, releaseTable);
+router.put(
+  '/toggle-booking/:tableId',
+  isAuthenticated,
+  isAdmin,
+  toggleTableBooking,
+);
+router.delete('/delete/:tableId', isAuthenticated, isAdmin, deleteTable);
 
 export default router;
