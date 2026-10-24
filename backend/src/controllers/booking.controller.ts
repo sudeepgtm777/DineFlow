@@ -1,4 +1,3 @@
-// @ts-nocheck
 import RoomBooking from '../models/roombook.model';
 import Room from '../models/room.model';
 export const bookRoomAsCustomer = async (req, res) => {

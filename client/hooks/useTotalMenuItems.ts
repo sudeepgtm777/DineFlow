@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
@@ -6,7 +5,7 @@ import { endpoints } from "@/lib/api/endpoints";
 const useTotalMenuItems = () => {
   const [totalMenuItems, setTotalMenuItems] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
   useEffect(() => {
     const fetchMenuItems = async () => {

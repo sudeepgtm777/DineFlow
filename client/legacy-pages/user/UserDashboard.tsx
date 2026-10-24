@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from 'react';
 import {
   FiShoppingCart,
@@ -11,9 +10,9 @@ import {
 import { Link, useNavigate } from '@/lib/router';
 import { MdMeetingRoom } from 'react-icons/md';
 import Logo from '@/components/brand/Logo';
-import useCart from '@/hooks/custumer/useCart';
-import { useMenu } from '@/hooks/custumer/useMenu';
-import { useMobileMenu } from '@/hooks/custumer/useMobileMenu';
+import useCart from '@/hooks/customer/useCart';
+import { useMenu } from '@/hooks/customer/useMenu';
+import { useMobileMenu } from '@/hooks/customer/useMobileMenu';
 
 const UserDashboard = () => {
   const navigate = useNavigate();
@@ -242,7 +241,7 @@ const UserDashboard = () => {
       {isCartOpen && (
         <div className='fixed inset-0 z-30 overflow-hidden'>
           <div
-            className='absolute inset-0 bg-black bg-opacity-50'
+            className='absolute inset-0 bg-black/50'
             onClick={() => setIsCartOpen(false)}
           ></div>
           <div className='absolute inset-y-0 right-0 max-w-full flex'>
@@ -283,7 +282,7 @@ const UserDashboard = () => {
                           >
                             <div className='shrink-0 h-16 md:h-20 w-16 md:w-20 rounded-md overflow-hidden'>
                               <img
-                                src={item?.image?.url}
+                                src={typeof item?.image === "string" ? item.image : item?.image?.url}
                                 alt={item.name}
                                 className='h-full w-full object-cover'
                               />
@@ -302,7 +301,7 @@ const UserDashboard = () => {
                                   <button
                                     className='px-2 py-1 text-gray-600 hover:bg-gray-100'
                                     onClick={() =>
-                                      updateQuantity(item.id, item.quantity - 1)
+                                      updateQuantity(item.cartItemId, item.quantity - 1)
                                     }
                                   >
                                     -
@@ -313,7 +312,7 @@ const UserDashboard = () => {
                                   <button
                                     className='px-2 py-1 text-gray-600 hover:bg-gray-100'
                                     onClick={() =>
-                                      updateQuantity(item.id, item.quantity + 1)
+                                      updateQuantity(item.cartItemId, item.quantity + 1)
                                     }
                                   >
                                     +
@@ -321,7 +320,7 @@ const UserDashboard = () => {
                                 </div>
                                 <button
                                   className='text-red-500 hover:text-red-700 text-sm'
-                                  onClick={() => removeFromCart(item.id)}
+                                  onClick={() => removeFromCart(item.cartItemId)}
                                 >
                                   Remove
                                 </button>

@@ -1,13 +1,12 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import api from "@/lib/axios";
-import RoomCard from "@/components/custumer/RoomCard";
+import RoomCard from "@/components/customer/RoomCard";
 import { endpoints } from "@/lib/api/endpoints";
 import Logo from "@/components/brand/Logo";
 
 const RoomsList = () => {
-  const [rooms, setRooms] = useState([]);
-  const [filteredRooms, setFilteredRooms] = useState([]);
+  const [rooms, setRooms] = useState<any[]>([]);
+  const [filteredRooms, setFilteredRooms] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [roomType, setRoomType] = useState("All");

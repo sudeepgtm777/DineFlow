@@ -1,10 +1,9 @@
-// @ts-nocheck
 import { useState, useEffect } from 'react';
 import { FiX, FiUpload } from 'react-icons/fi';
 import api from '@/lib/axios';
 import { endpoints } from "@/lib/api/endpoints";
 
-const MenuItemModal = ({ item, onClose, onSave }) => {
+const MenuItemModal = ({ item, onClose, onSave }: any) => {
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -16,8 +15,8 @@ const MenuItemModal = ({ item, onClose, onSave }) => {
   });
 
   const [isUploading, setIsUploading] = useState(false);
-  const [errors, setErrors] = useState({});
-  const [categories, setCategories] = useState([]);
+  const [errors, setErrors] = useState<any>({});
+  const [categories, setCategories] = useState<any[]>([]);
   const [loadingCategories, setLoadingCategories] = useState(true);
   const [isCustomCategory, setIsCustomCategory] = useState(false);
 
@@ -84,7 +83,7 @@ const MenuItemModal = ({ item, onClose, onSave }) => {
   };
 
   const validateForm = () => {
-    const newErrors = {};
+    const newErrors: Record<string, string> = {};
     if (!formData.name.trim()) newErrors.name = 'Name is required';
     if (formData.price <= 0) newErrors.price = 'Price must be greater than 0';
     if (!formData.category.trim()) newErrors.category = 'Category is required';
@@ -101,7 +100,7 @@ const MenuItemModal = ({ item, onClose, onSave }) => {
       const data = new FormData();
       data.append('name', formData.name);
       data.append('description', formData.description);
-      data.append('price', formData.price);
+      data.append('price', String(formData.price));
       data.append('category', formData.category);
       data.append('status', formData.status);
       if (formData.image) {
@@ -131,7 +130,7 @@ const MenuItemModal = ({ item, onClose, onSave }) => {
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+    <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b p-4">
           <h2 className="text-xl font-bold text-gray-800">

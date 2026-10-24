@@ -1,12 +1,11 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 
 const useTableReservations = () => {
-  const [reservations, setReservations] = useState([]);
-  const [availableTables, setAvailableTables] = useState([]);
+  const [reservations, setReservations] = useState<any[]>([]);
+  const [availableTables, setAvailableTables] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
   useEffect(() => {
     const fetchReservations = async () => {

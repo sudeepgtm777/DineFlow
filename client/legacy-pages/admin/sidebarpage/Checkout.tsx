@@ -1,10 +1,9 @@
-// @ts-nocheck
 import React, { useRef } from 'react';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '@/lib/redux/hooks';
 import Logo from '@/components/brand/Logo';
 
 const CheckoutPage = () => {
-  const printRef = useRef();
+  const printRef = useRef<any>();
 
   const {
     cart,
@@ -17,7 +16,7 @@ const CheckoutPage = () => {
     total,
     customerName,
     customerNumber,
-  } = useSelector((state: any) => state.pos);
+  } = useAppSelector((state) => state.pos);
 
   const handlePrint = () => {
     const printContents = printRef.current.innerHTML;

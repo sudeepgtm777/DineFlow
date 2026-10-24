@@ -9,5 +9,4 @@ export const endpoints = {
   room: `${API_BASE_URL}/room`,
   pos: `${API_BASE_URL}/pos`,
   booking: `${API_BASE_URL}/roombooking`,
-  article: `${API_BASE_URL}/article`,
 };

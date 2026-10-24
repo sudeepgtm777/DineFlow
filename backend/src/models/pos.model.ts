@@ -1,4 +1,3 @@
-// @ts-nocheck
 import mongoose from "mongoose";
 
 const PosSchema = new mongoose.Schema({

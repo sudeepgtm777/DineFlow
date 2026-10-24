@@ -1,4 +1,3 @@
-// @ts-nocheck
 import MenuItemModal from '@/components/menu/MenuItemModal';
 import { useState, useEffect } from 'react';
 import { FiEdit, FiTrash2, FiPlus, FiSearch, FiChevronUp, FiChevronDown } from 'react-icons/fi';
@@ -8,13 +7,13 @@ import api from '@/lib/axios';
 import { endpoints } from "@/lib/api/endpoints";
 
 const MenuPage = () => {
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('all');
   const [selectedStatus, setSelectedStatus] = useState('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [currentItem, setCurrentItem] = useState(null);
+  const [currentItem, setCurrentItem] = useState<any>(null);
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
 
   // Categories (excluding 'all' for the modal)
@@ -223,7 +222,7 @@ const MenuPage = () => {
               <tbody className="bg-white divide-y divide-gray-200">
                 {filteredItems.length === 0 ? (
                   <tr>
-                    <td colSpan="5" className="px-6 py-4 text-center text-gray-500">
+                    <td colSpan={5} className="px-6 py-4 text-center text-gray-500">
                       No menu items found
                     </td>
                   </tr>

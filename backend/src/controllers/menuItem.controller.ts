@@ -1,4 +1,3 @@
-// @ts-nocheck
 import MenuItem from "../models/menuItem.model";
 import User from "../models/user.model";
 import cloudinary from "../utils/cloudinary";
@@ -8,7 +7,7 @@ import getDataUri from "../utils/datauri";
 export const addMenuItem = async (req, res) => {
   try {
     const file = req.file;
-    let imageUpload = {};
+    let imageUpload: { url?: string; public_id?: string } = {};
 
     if (file) {
       const fileUri = getDataUri(file);
@@ -100,7 +99,7 @@ export const updateMenuItem = async (req, res) => {
   try {
     const { id } = req.params;
     const file = req.file;
-    let imageUpload = {};
+    let imageUpload: { url?: string; public_id?: string } = {};
 
     if (file) {
       const fileUri = getDataUri(file);

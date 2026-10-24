@@ -1,10 +1,9 @@
-// @ts-nocheck
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useAppSelector } from "@/lib/redux/hooks";
 import { useNavigate } from "@/lib/router";
 
 const CookProtectedRoute = ({ children }) => {
-    const { user, loading } = useSelector((store: any) => store.auth);
+    const { user, loading } = useAppSelector((store) => store.auth);
     const navigate = useNavigate();
     const [checkingAuth, setCheckingAuth] = useState(true);
 

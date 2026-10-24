@@ -1,7 +1,7 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
+import { toast } from "react-toastify";
 
 const GetTotalByPaymentType = () => {
   const [totals, setTotals] = useState({
@@ -10,8 +10,8 @@ const GetTotalByPaymentType = () => {
     totalOnline: 0,
     totalCredit: 0,
   });
-  const [bills, setBills] = useState([]);
-  const [filteredBills, setFilteredBills] = useState([]);
+  const [bills, setBills] = useState<any[]>([]);
+  const [filteredBills, setFilteredBills] = useState<any[]>([]);
   const [activeFilter, setActiveFilter] = useState("all");
   const [timeRange, setTimeRange] = useState("today");
   const [loading, setLoading] = useState(true);
@@ -108,11 +108,11 @@ const GetTotalByPaymentType = () => {
   }, [bills, activeFilter]);
 
   const handleCreditTransfer = async (billId) => {
-    const transferTo = prompt("Transfer to (cash/online):")?.toLowerCase();
-    const amount = parseFloat(prompt("Enter amount to transfer:"));
+    const transferTo = prompt("Transfer to (cash/online):")?.toLowerCase() || "";
+    const amount = parseFloat(prompt("Enter amount to transfer:") || "");
 
     if (!["cash", "online"].includes(transferTo) || isNaN(amount)) {
-      alert("Invalid input");
+      toast.error("Invalid input");
       return;
     }
 
@@ -122,12 +122,12 @@ const GetTotalByPaymentType = () => {
         { billId, transferTo, amount },
         { withCredentials: true }
       );
-      alert("Transfer successful");
+      toast.success("Transfer successful");
       fetchBills();
       fetchTotals();
     } catch (err) {
       console.error(err);
-      alert("Transfer failed");
+      toast.error("Transfer failed");
     }
   };
 

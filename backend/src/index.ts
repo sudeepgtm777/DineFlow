@@ -1,4 +1,3 @@
-// @ts-nocheck
 import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
@@ -17,16 +16,27 @@ import bookingRoute from './routes/booking.route';
 
 dotenv.config();
 
+['JWT_SECRET', 'MONGO_URI'].forEach((key) => {
+  if (!process.env[key]) {
+    console.error(`Missing required environment variable: ${key}`);
+    process.exit(1);
+  }
+});
+
+const allowedOrigins = [
+  'http://localhost:3000',
+  'http://localhost:3001',
+  'http://localhost:4000',
+  'http://localhost:5173',
+  process.env.FRONTEND_URL,
+  'https://restro-erp.onrender.com',
+].filter(Boolean);
+
 const app = express();
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
-    origin: [
-      'http://localhost:3000',
-      'http://localhost:3001',
-      'http://localhost:4000',
-      'http://localhost:5173',
-    ],
+    origin: allowedOrigins,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     credentials: true,
   },
@@ -36,13 +46,6 @@ const io = new Server(server, {
 app.use(
   cors({
     origin: (origin, callback) => {
-      const allowedOrigins = [
-        'http://localhost:3000',
-        'http://localhost:3001',
-        'http://localhost:4000',
-        'http://localhost:5173',
-        'https://restro-erp.onrender.com',
-      ];
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
@@ -55,8 +58,8 @@ app.use(
     optionsSuccessStatus: 200,
   }),
 );
-app.use(express.json({ limit: '50mb' }));
-app.use(express.urlencoded({ limit: '50mb', extended: true }));
+app.use(express.json({ limit: '1mb' }));
+app.use(express.urlencoded({ limit: '1mb', extended: true }));
 app.use(cookieParser());
 
 app.locals.io = io;
@@ -79,6 +82,19 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
 });
 
+app.use((req, res) => {
+  res.status(404).json({ message: 'Not found', success: false });
+});
+
+app.use((err, _req, res, _next) => {
+  console.error(err);
+  const status = err.status || err.statusCode || 500;
+  res.status(status).json({
+    message: err.message || 'Internal server error',
+    success: false,
+  });
+});
+
 // Socket.IO
 io.on('connection', (socket) => {
   console.log('Client connected:', socket.id);
@@ -89,12 +105,17 @@ io.on('connection', (socket) => {
 
 // Start Server
 const PORT = process.env.PORT || 4000;
-server.listen(PORT, async () => {
+
+const start = async () => {
   try {
     await connectDB();
-    console.log(`Server running on port ${PORT}`);
+    server.listen(PORT, () => {
+      console.log(`Server running on port ${PORT}`);
+    });
   } catch (error) {
     console.error('Database connection error:', error.message);
     process.exit(1);
   }
-});
+};
+
+start();

@@ -1,14 +1,13 @@
-// @ts-nocheck
 import React, { useEffect, useState } from 'react';
 import AdminNavbar from './AdminNavbar';
 import Sidebar from './Sidebar';
 import { useNavigate } from '@/lib/router';
-import { useSelector } from 'react-redux';
+import { useAppSelector } from '@/lib/redux/hooks';
 import useSyncAuth from '@/hooks/useSyncAuth';
 
 const AdminLayout = ({ children }: any) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user } = useSelector((store: any) => store.auth);
+  const { user } = useAppSelector((store) => store.auth);
   const navigate = useNavigate();
 
   useSyncAuth();
@@ -26,12 +25,11 @@ const AdminLayout = ({ children }: any) => {
   return (
     <div className="flex h-screen bg-gray-100">
       {/* Sidebar */}
-      <Sidebar />
+      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
 
-      {/* Overlay for mobile */}
       {isSidebarOpen && (
         <div
-          className="fixed inset-0 bg-black opacity-50 lg:hidden"
+          className="fixed inset-0 bg-black/50 lg:hidden z-30"
           onClick={toggleSidebar}
         ></div>
       )}

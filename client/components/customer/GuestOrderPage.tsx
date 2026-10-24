@@ -1,6 +1,5 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
-import { useSelector, useDispatch } from "react-redux";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { useNavigate, useSearchParams } from "@/lib/router";
 import {
   FiArrowLeft,
@@ -19,14 +18,15 @@ import {
   updatePaymentMethod,
   setOrderItems,
 } from "@/lib/redux/orderSlice";
-import useSubmitOrder from "@/hooks/custumer/useSubmitOrder";
+import useSubmitOrder from "@/hooks/customer/useSubmitOrder";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { endpoints } from "@/lib/api/endpoints";
 import Logo from "@/components/brand/Logo";
+import api from "@/lib/axios";
 
 const GuestOrder = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
 
@@ -38,13 +38,13 @@ const GuestOrder = () => {
     deliveryAddress,
     specialInstructions,
     paymentMethod,
-  } = useSelector((state: any) => state.order);
-  const { items: cartItems, subtotal: cartSubtotal } = useSelector((state: any) => state.cart);
+  } = useAppSelector((state) => state.order);
+  const { items: cartItems, subtotal: cartSubtotal } = useAppSelector((state) => state.cart);
 
   const { isSubmitting, orderSuccess, error, handleSubmitOrder } = useSubmitOrder();
 
-  const [activeOrder, setActiveOrder] = useState(null);
-  const [activeOrderItems, setActiveOrderItems] = useState([]);
+  const [activeOrder, setActiveOrder] = useState<any>(null);
+  const [activeOrderItems, setActiveOrderItems] = useState<any[]>([]);
   const [activeOrderSubtotal, setActiveOrderSubtotal] = useState(0);
 
   // Sync cart to order and fetch active order
@@ -77,11 +77,13 @@ const GuestOrder = () => {
     const fetchActiveOrder = async () => {
       if (!table || orderId) return;
       try {
-        const response = await fetch(`${endpoints.order}/orders/active?tableNumber=${table}`);
-        const data = await response.json();
-        if (response.ok && data.order) {
-          setActiveOrder(data.order);
-          const enrichedItems = (data.order.items || []).map((item, index) => ({
+        const { data } = await api.get(`${endpoints.order}/orders/active`, {
+          params: { tableNumber: table },
+        });
+        const current = data.orders?.[0] || data.order;
+        if (current) {
+          setActiveOrder(current);
+          const enrichedItems = (current.items || []).map((item, index) => ({
             ...item,
             id: item.id || `active-${item.name}-${index}-${item.quantity}`,
           }));
@@ -200,7 +202,7 @@ const GuestOrder = () => {
                       ? "border-indigo-600 bg-indigo-50 text-indigo-700"
                       : "border-gray-200 hover:bg-gray-50"
                   }`}
-                  disabled={activeOrder}
+                  disabled={Boolean(activeOrder)}
                 >
                   <div className="flex items-center justify-center">
                     <FiHome className="mr-2" />
@@ -214,7 +216,7 @@ const GuestOrder = () => {
                       ? "border-indigo-600 bg-indigo-50 text-indigo-700"
                       : "border-gray-200 hover:bg-gray-50"
                   }`}
-                  disabled={activeOrder}
+                  disabled={Boolean(activeOrder)}
                 >
                   <div className="flex items-center justify-center">
                     <FiTruck className="mr-2" />
@@ -236,7 +238,7 @@ const GuestOrder = () => {
                     placeholder="Enter your table number"
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
                     required
-                    disabled={activeOrder}
+                    disabled={Boolean(activeOrder)}
                   />
                 </div>
               ) : (

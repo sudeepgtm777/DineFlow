@@ -1,4 +1,3 @@
-// @ts-nocheck
 import React from "react";
 import { useNavigate } from "@/lib/router";
 import Logo from "@/components/brand/Logo";

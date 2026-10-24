@@ -1,11 +1,10 @@
-// @ts-nocheck
 import { useState } from "react";
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
 
 const useAddNewItem = () => {
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
   const [success, setSuccess] = useState(false);
 
   const addItem = async (values) => {

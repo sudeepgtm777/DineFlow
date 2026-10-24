@@ -1,7 +1,6 @@
-// @ts-nocheck
 import React, { useState } from "react";
 
-const RoomGallery = ({ photos }) => {
+const RoomGallery = ({ photos, className }: any) => {
   const [activeIndex, setActiveIndex] = useState(0);
 
   if (!photos || photos.length === 0) {

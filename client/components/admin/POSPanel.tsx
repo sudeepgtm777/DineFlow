@@ -1,10 +1,10 @@
-// @ts-nocheck
 import React, { useMemo } from 'react';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from '@/lib/redux/hooks';
 import { setPOSData } from '@/lib/redux/posSlice';
 import { useNavigate } from '@/lib/router';
 import api from '@/lib/axios';
 import { endpoints } from "@/lib/api/endpoints";
+import { toast } from 'react-toastify';
 
 const POSPanel = ({
   cart,
@@ -23,8 +23,9 @@ const POSPanel = ({
   customerNumber,
   setCustomerNumber,
   selectedTable,
-}) => {
-  const dispatch = useDispatch();
+  onPrintBill,
+}: any) => {
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const total = useMemo(() => subtotal - discount, [subtotal, discount]);
@@ -92,7 +93,7 @@ const POSPanel = ({
         '\u274C Failed to create POS entry:',
         err?.response?.data || err.message,
       );
-      alert('Something went wrong while processing the order.');
+      toast.error('Something went wrong while processing the order.');
     }
   };
 

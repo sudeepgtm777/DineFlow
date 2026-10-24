@@ -1,11 +1,10 @@
-// @ts-nocheck
 // Set development mode directly
 const isDevelopment = true; // Hardcoded to development
 
 /**
  * Logs error information with context
  */
-export function logError(error, context, metadata) {
+export function logError(error, context, metadata?) {
   if (isDevelopment) {
     console.groupCollapsed('%c[ERROR] ' + context, 'color: red; font-weight: bold;');
     console.error('Error:', error);
@@ -31,7 +30,7 @@ export function logError(error, context, metadata) {
 /**
  * Logs informational messages
  */
-export function logInfo(message, data) {
+export function logInfo(message, data?) {
   if (isDevelopment) {
     console.groupCollapsed('%c[INFO] ' + message, 'color: blue; font-weight: bold;');
     if (data) console.log(data);
@@ -42,7 +41,7 @@ export function logInfo(message, data) {
 /**
  * Logs warning messages
  */
-export function logWarning(message, data) {
+export function logWarning(message, data?) {
   if (isDevelopment) {
     console.groupCollapsed('%c[WARN] ' + message, 'color: orange; font-weight: bold;');
     if (data) console.warn(data);
@@ -53,9 +52,9 @@ export function logWarning(message, data) {
 /**
  * Initialize axios request/response logging
  */
-export function initAxiosLogging() {
+export function initAxiosLogging(axiosClient) {
   if (isDevelopment) {
-    axios.interceptors.request.use(function(config) {
+    axiosClient.interceptors.request.use(function(config) {
       logInfo('Request: ' + config.method.toUpperCase() + ' ' + config.url, {
         params: config.params,
         data: config.data
@@ -66,7 +65,7 @@ export function initAxiosLogging() {
       return Promise.reject(error);
     });
 
-    axios.interceptors.response.use(
+    axiosClient.interceptors.response.use(
       function(response) {
         logInfo('Response: ' + response.status + ' ' + response.config.url, {
           data: response.data

@@ -1,7 +1,19 @@
-// @ts-nocheck
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-const initialState = {
+export type POSState = {
+  cart: Array<{ id?: string; name?: string; price: number; quantity: number }>;
+  subtotal: number;
+  discount: number;
+  discountPercent: number;
+  cash: number;
+  credit: number;
+  online: number;
+  total: number;
+  customerName: string;
+  customerNumber: string;
+};
+
+const initialState: POSState = {
   cart: [],
   subtotal: 0,
   discount: 0,
@@ -18,7 +30,7 @@ const posSlice = createSlice({
   name: "pos",
   initialState,
   reducers: {
-    setPOSData(state, action) {
+    setPOSData(state, action: PayloadAction<Partial<POSState>>) {
       return { ...state, ...action.payload };
     },
     clearPOSData() {

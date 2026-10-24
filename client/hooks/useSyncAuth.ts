@@ -1,13 +1,12 @@
-// @ts-nocheck
 import { useEffect } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { logout } from "@/lib/redux/authSlice"; 
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
 
 const useSyncAuth = () => {
-    const dispatch = useDispatch();
-    const { user } = useSelector((state: any) => state.auth);
+    const dispatch = useAppDispatch();
+    const { user } = useAppSelector((state) => state.auth);
 
     useEffect(() => {
         const syncAuthStatus = async () => {

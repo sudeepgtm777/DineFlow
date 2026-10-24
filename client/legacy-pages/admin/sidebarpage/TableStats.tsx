@@ -1,7 +1,6 @@
-// @ts-nocheck
 import React, { useState } from 'react';
-import { useTables } from '@/hooks/useBill';
-import { useBill } from '@/hooks/useTables';
+import { useTables } from '@/hooks/useTables';
+import { useBill } from '@/hooks/useBill';
 import { ToastContainer, toast } from 'react-toastify';
 import { useNavigate } from '@/lib/router';
 import api from '@/lib/axios';
@@ -20,7 +19,7 @@ const TableManager = () => {
   const { billData, showModal, fetchBill, setShowModal } = useBill();
   const [newTableNumber, setNewTableNumber] = useState('');
   const [creatingTable, setCreatingTable] = useState(false);
-  const [dropdownOpenId, setDropdownOpenId] = useState(null); // Track dropdown toggle
+  const [dropdownOpenId, setDropdownOpenId] = useState<any>(null); // Track dropdown toggle
   const navigate = useNavigate();
 
   const handlePrint = () => window.print();
@@ -31,7 +30,7 @@ const TableManager = () => {
   };
 
   const handleCreateTable = async () => {
-    if (!newTableNumber || isNaN(newTableNumber)) {
+    if (!newTableNumber || isNaN(Number(newTableNumber))) {
       toast.warning('Please enter a valid table number');
       return;
     }
@@ -216,7 +215,7 @@ const TableManager = () => {
 
       {/* Bill Modal */}
       {showModal && billData && (
-        <div className='fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center z-50'>
+        <div className='fixed inset-0 bg-black/40 flex items-center justify-center z-50'>
           <div className='bg-white w-full max-w-md p-6 rounded-xl shadow-lg print:w-full print:max-w-none print:shadow-none print:bg-white'>
             <h3 className='text-xl font-bold mb-4'>
               Bill - Table {String(billData?.tableNumber ?? 'N/A')}

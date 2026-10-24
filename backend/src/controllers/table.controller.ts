@@ -1,4 +1,3 @@
-// @ts-nocheck
 import Order from '../models/order.model';
 import Table from '../models/table.model';
 import QRCode from 'qrcode';
@@ -27,7 +26,7 @@ export const createTable = async (req, res) => {
     const table = new Table({ tableNumber });
 
     // Generate QR code URL
-    const qrUrl = `https://restro-erp.onrender.com/order?table=${tableNumber}`;
+    const qrUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order?table=${tableNumber}`;
 
     // Use OS-independent temp file path
     const tempDir = path.resolve('./tmp');
@@ -138,7 +137,12 @@ export const releaseTable = async (req, res) => {
 
 export const getAllTableQRCodes = async (req, res) => {
   try {
-    const qrCodes = await TableQRCode.find().populate('tableId');
+    const tables = await Table.find().select('tableNumber qrImage');
+    const qrCodes = tables.map((table) => ({
+      tableId: table._id,
+      tableNumber: table.tableNumber,
+      qrImage: table.qrImage,
+    }));
 
     res.status(200).json({
       message: 'QR Codes fetched successfully',

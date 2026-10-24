@@ -1,22 +1,28 @@
-// @ts-nocheck
-// hooks/custumer/useCart.js
-import { useSelector, useDispatch } from "react-redux";
+// hooks/customer/useCart.js
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import {
   setOrderItems,
   updateItemQuantity,
   removeItem,
+  clearCart as clearCartAction,
 } from "@/lib/redux/cartSlice";
 
 const useCart = () => {
-  const dispatch = useDispatch();
-  const cartState = useSelector((state: any) => state.cart);
+  const dispatch = useAppDispatch();
+  const cartState = useAppSelector((state) => state.cart);
 
   const addToCart = (item) => {
+    const cartItem = {
+      ...item,
+      cartItemId:
+        item.cartItemId ||
+        `${item._id || item.id || item.name}-${Date.now()}`,
+    };
     dispatch(
       setOrderItems({
-        items: [...cartState.items, item],
-        subtotal: cartState.subtotal + item.price * item.quantity,
-        totalItems: cartState.totalItems + item.quantity,
+        items: [...cartState.items, cartItem],
+        subtotal: cartState.subtotal + cartItem.price * cartItem.quantity,
+        totalItems: cartState.totalItems + cartItem.quantity,
         isCartOpen: true,
       })
     );
@@ -35,14 +41,7 @@ const useCart = () => {
   };
 
   const clearCart = () => {
-    dispatch(
-      setOrderItems({
-        items: [],
-        subtotal: 0,
-        totalItems: 0,
-        isCartOpen: false,
-      })
-    );
+    dispatch(clearCartAction());
   };
 
   return {

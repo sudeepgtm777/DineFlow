@@ -1,4 +1,3 @@
-// @ts-nocheck
 import posModel from '../models/pos.model';
 import Order from '../models/order.model';
 import Table from '../models/table.model';

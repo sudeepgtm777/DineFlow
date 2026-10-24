@@ -1,8 +1,7 @@
-// @ts-nocheck
 import { useState, useMemo, useEffect } from 'react';
 
 const usePOSCart = () => {
-  const [cart, setCart] = useState([]);
+  const [cart, setCart] = useState<any[]>([]);
   const [discount, setDiscount] = useState(0); // now absolute value
   const [onlineAmount, setOnlineAmount] = useState(0);
   const [cashPaid, setCashPaid] = useState(0);

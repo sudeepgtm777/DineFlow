@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useEffect, useState, useCallback } from "react";
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
@@ -6,7 +5,7 @@ import { endpoints } from "@/lib/api/endpoints";
 const useOrderStats = () => {
   const [totalOrders, setTotalOrders] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
   const fetchOrderStats = useCallback(async () => {
     setLoading(true);

@@ -1,17 +1,17 @@
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "@/lib/router";
 import { FiArrowLeft, FiAlertTriangle } from "react-icons/fi";
 import { endpoints } from "@/lib/api/endpoints";
 import Logo from "@/components/brand/Logo";
+import api from "@/lib/axios";
 
 const ActiveOrder = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const tableNumber = searchParams.get("table");
 
-  const [orders, setOrders] = useState([]);
-  const [error, setError] = useState(null);
+  const [orders, setOrders] = useState<any[]>([]);
+  const [error, setError] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,14 +23,10 @@ const ActiveOrder = () => {
 
     const fetchOrders = async () => {
       try {
-        const response = await fetch(`${endpoints.order}/orders/active?tableNumber=${tableNumber}`);
-
-        const data = await response.json();
-        if (response.ok) {
-          setOrders(data.orders || []);
-        } else {
-          setError(data.message || "Failed to fetch orders");
-        }
+        const { data } = await api.get(`${endpoints.order}/orders/active`, {
+          params: { tableNumber },
+        });
+        setOrders(data.orders || []);
       } catch (err) {
         console.error("Error fetching orders:", err);
         setError("Failed to fetch orders");

@@ -1,4 +1,3 @@
-// @ts-nocheck
 // models/roomBooking.model.js
 import mongoose from "mongoose";
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
@@ -13,11 +12,11 @@ const staticCategories = [
 ];
 
 export const useMenu = () => {
-  const [menuItems, setMenuItems] = useState([]);
+  const [menuItems, setMenuItems] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
   const [categories, setCategories] = useState(staticCategories);
 
   const fetchMenuItems = async () => {

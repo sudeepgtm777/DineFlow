@@ -1,16 +1,27 @@
-// @ts-nocheck
-// orderSlice.js
-import { createSlice } from "@reduxjs/toolkit";
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
+import type { CartItem } from "./cartSlice";
 
-const initialState = {
-  items: [],             
-  subtotal: 0,           
-  totalItems: 0,        
-  orderType: "dine-in", 
-  tableNumber: "",      
-  deliveryAddress: "",  
-  phoneNumber: "",      
-  specialInstructions: "", 
+export type OrderState = {
+  items: CartItem[];
+  subtotal: number;
+  totalItems: number;
+  orderType: string;
+  tableNumber: string;
+  deliveryAddress: string;
+  phoneNumber: string;
+  specialInstructions: string;
+  paymentMethod: string;
+};
+
+const initialState: OrderState = {
+  items: [],
+  subtotal: 0,
+  totalItems: 0,
+  orderType: "dine-in",
+  tableNumber: "",
+  deliveryAddress: "",
+  phoneNumber: "",
+  specialInstructions: "",
   paymentMethod: "counter",
 };
 
@@ -18,40 +29,35 @@ const orderSlice = createSlice({
   name: "order",
   initialState,
   reducers: {
-    setOrderItems: (state, action) => {
+    setOrderItems: (
+      state,
+      action: PayloadAction<{ items: CartItem[]; subtotal: number; totalItems?: number }>
+    ) => {
       state.items = action.payload.items;
       state.subtotal = action.payload.subtotal;
-      state.totalItems = action.payload.totalItems;
+      state.totalItems =
+        action.payload.totalItems ??
+        action.payload.items.reduce((sum, item) => sum + (item.quantity || 0), 0);
     },
-    updateOrderType: (state, action) => {
+    updateOrderType: (state, action: PayloadAction<string>) => {
       state.orderType = action.payload;
     },
-    updateTableNumber: (state, action) => {
+    updateTableNumber: (state, action: PayloadAction<string>) => {
       state.tableNumber = action.payload;
     },
-    updateDeliveryAddress: (state, action) => {
+    updateDeliveryAddress: (state, action: PayloadAction<string>) => {
       state.deliveryAddress = action.payload;
     },
-    updatePhoneNumber: (state, action) => {
+    updatePhoneNumber: (state, action: PayloadAction<string>) => {
       state.phoneNumber = action.payload;
     },
-    updateSpecialInstructions: (state, action) => {
+    updateSpecialInstructions: (state, action: PayloadAction<string>) => {
       state.specialInstructions = action.payload;
     },
-    updatePaymentMethod: (state, action) => {
+    updatePaymentMethod: (state, action: PayloadAction<string>) => {
       state.paymentMethod = action.payload;
     },
-    clearOrder: (state) => {
-      state.items = [];
-      state.subtotal = 0;
-      state.totalItems = 0;
-      state.orderType = "dine-in";
-      state.tableNumber = "";
-      state.deliveryAddress = "";
-      state.phoneNumber = "";
-      state.specialInstructions = "";
-      state.paymentMethod = "counter";
-    },
+    clearOrder: () => initialState,
   },
 });
 

@@ -1,4 +1,3 @@
-// @ts-nocheck
 // src/hooks/useDailySales.js
 import { useEffect, useState } from "react";
 import api from "@/lib/axios";
@@ -7,7 +6,7 @@ import { endpoints } from "@/lib/api/endpoints";
 const useDailySales = () => {
   const [data, setData] = useState({ totalSales: 0, orders: 0 });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
   const fetchData = async () => {
     setLoading(true);

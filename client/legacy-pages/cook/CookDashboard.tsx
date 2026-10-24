@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { useNavigate } from '@/lib/router';
-import { useDispatch } from 'react-redux';
+import { useAppDispatch } from '@/lib/redux/hooks';
 import { setUser } from '@/lib/redux/authSlice';
 import api from '@/lib/axios';
 import { endpoints } from "@/lib/api/endpoints"; // Add endpoints.order
@@ -8,11 +7,11 @@ import { toast } from 'react-toastify';
 import React, { useEffect, useState } from 'react';
 
 const CookDashboard = () => {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [activeTab, setActiveTab] = useState('in-progress'); // Start with in-progress
   const [newOrderNotification, setNewOrderNotification] = useState(false);
   const navigate = useNavigate();
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
 
   useEffect(() => {
     const fetchOrders = async () => {

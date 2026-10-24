@@ -1,5 +1,4 @@
-// @ts-nocheck
-import express from "express";
+import express from 'express';
 import {
   createRoom,
   getAllRooms,
@@ -9,39 +8,38 @@ import {
   deleteRoom,
   updateRoom,
   deleteRoomPhoto,
-} from "../controllers/room.controller";
+} from '../controllers/room.controller';
 
-import isAuthenticated from "../middlewares/isAuthenticated";
-import { multipleUpload } from "../middlewares/mutler";
+import isAuthenticated from '../middlewares/isAuthenticated';
+import isAdmin from '../middlewares/isAdmin';
+import { multipleUpload } from '../middlewares/multer';
 
 const router = express.Router();
 
-// Create room with multiple image uploads
-router.post("/create", isAuthenticated, multipleUpload, createRoom);
-
-// Get all rooms
-router.get("/getrooms", getAllRooms);
-
-
-// Get room details by room number
-router.get("/:roomNumber", getRoomByNumber);
-
-// Check in to a room
-router.put("/checkin/:roomNumber", isAuthenticated, checkInRoom);
-
-// Book room as customer
-// router.put("/book/:roomNumber",bookRoomAsCustomer);
-
-// Check out of a room
-router.put("/checkout/:roomNumber", isAuthenticated, checkOutRoom);
-
-// Delete a room
-router.delete("/delete/:roomId", isAuthenticated, deleteRoom);
-
-// Update room details
-router.put("/update/:roomId", isAuthenticated, multipleUpload, updateRoom);
-
-// Delete a room photo
-router.delete("/deletephoto/:roomId", isAuthenticated, deleteRoomPhoto);
+router.post(
+  '/create',
+  isAuthenticated,
+  isAdmin,
+  multipleUpload,
+  createRoom,
+);
+router.get('/getrooms', getAllRooms);
+router.get('/:roomNumber', getRoomByNumber);
+router.put('/checkin/:roomNumber', isAuthenticated, isAdmin, checkInRoom);
+router.put('/checkout/:roomNumber', isAuthenticated, isAdmin, checkOutRoom);
+router.delete('/delete/:roomId', isAuthenticated, isAdmin, deleteRoom);
+router.put(
+  '/update/:roomId',
+  isAuthenticated,
+  isAdmin,
+  multipleUpload,
+  updateRoom,
+);
+router.delete(
+  '/deletephoto/:roomId',
+  isAuthenticated,
+  isAdmin,
+  deleteRoomPhoto,
+);
 
 export default router;
