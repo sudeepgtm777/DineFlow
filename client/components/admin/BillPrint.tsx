@@ -1,8 +1,7 @@
-// @ts-nocheck
 import React from 'react';
 import Logo from '@/components/brand/Logo';
 
-const BillPrint = React.forwardRef(({ cart, subtotal, serviceCharge, total, orderNumber }, ref) => {
+const BillPrint = React.forwardRef(({ cart, subtotal, serviceCharge, total, orderNumber }: any, ref: React.Ref<HTMLDivElement>) => {
   const currentDate = new Date().toLocaleString();
 
   return (

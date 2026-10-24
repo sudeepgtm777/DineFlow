@@ -1,7 +1,6 @@
-// @ts-nocheck
 import React, { useState, useRef, useEffect } from "react";
-import { useSelector, useDispatch } from "react-redux";
-import { Link, useNavigate } from "@/lib/router";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
+import { useNavigate } from "@/lib/router";
 import api from "@/lib/axios";
 import { setUser } from "@/lib/redux/authSlice"; 
 import { endpoints } from "@/lib/api/endpoints";
@@ -9,8 +8,8 @@ import { toast } from "react-toastify";
 import Logo from "@/components/brand/Logo";
 
 const AdminNavbar = ({ toggleSidebar }: any) => {
-  const { user } = useSelector((store: any) => store.auth);
-  const dispatch = useDispatch();
+  const { user } = useAppSelector((store) => store.auth);
+  const dispatch = useAppDispatch();
   const navigate = useNavigate();
 
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -85,12 +84,6 @@ const AdminNavbar = ({ toggleSidebar }: any) => {
 
         {dropdownOpen && (
           <div className="absolute right-0 mt-2 w-40 bg-white border border-gray-200 rounded shadow-lg">
-            <Link
-              to="/admin/profile"
-              className="block px-4 py-2 text-gray-600 hover:bg-gray-100"
-            >
-              Profile
-            </Link>
             <button
               onClick={handleLogout}
               className="w-full text-left px-4 py-2 text-gray-600 hover:bg-gray-100"
