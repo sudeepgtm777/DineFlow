@@ -1,9 +1,9 @@
-// @ts-nocheck
 import User from '../models/user.model';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import getDataUri from '../utils/datauri';
 import cloudinary from '../utils/cloudinary';
+import { authCookieOptions } from '../utils/cookieOptions';
 
 export const register = async (req, res) => {
   try {
@@ -12,6 +12,13 @@ export const register = async (req, res) => {
       return res
         .status(400)
         .json({ message: 'User already exists', success: false });
+    }
+
+    if (!req.body.password || String(req.body.password).length < 8) {
+      return res.status(400).json({
+        message: 'Password must be at least 8 characters',
+        success: false,
+      });
     }
 
     const hashedPassword = await bcrypt.hash(req.body.password, 10);
@@ -79,7 +86,7 @@ export const login = async (req, res) => {
 
     let user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).json({
+      return res.status(401).json({
         message: 'Incorrect email or password.',
         success: false,
       });
@@ -87,7 +94,7 @@ export const login = async (req, res) => {
 
     const isPasswordMatch = await bcrypt.compare(password, user.password);
     if (!isPasswordMatch) {
-      return res.status(400).json({
+      return res.status(401).json({
         message: 'Incorrect email or password.',
         success: false,
       });
@@ -101,25 +108,21 @@ export const login = async (req, res) => {
       expiresIn: '1d',
     });
 
-    user = {
+    const publicUser = {
       _id: user._id,
       fullname: user.fullname,
       email: user.email,
       phoneNumber: user.phoneNumber,
       profile: user.profile,
-      role: user.role, // Include role in the response
+      role: user.role,
     };
 
     return res
       .status(200)
-      .cookie('token', token, {
-        maxAge: 1 * 24 * 60 * 60 * 1000, // 1 day
-        httpOnly: true,
-        sameSite: 'strict',
-      })
+      .cookie('token', token, authCookieOptions())
       .json({
-        message: `Welcome back ${user.fullname}`,
-        user,
+        message: `Welcome back ${publicUser.fullname}`,
+        user: publicUser,
         success: true,
       });
   } catch (error) {
@@ -133,12 +136,19 @@ export const login = async (req, res) => {
 
 export const logout = async (req, res) => {
   try {
-    return res.status(200).cookie('token', '', { maxAge: 0 }).json({
-      message: 'Logged out successfully.',
-      success: true,
-    });
+    return res
+      .status(200)
+      .cookie('token', '', { ...authCookieOptions(0), maxAge: 0 })
+      .json({
+        message: 'Logged out successfully.',
+        success: true,
+      });
   } catch (error) {
     console.log(error);
+    return res.status(500).json({
+      message: 'Something went wrong',
+      success: false,
+    });
   }
 };
 export const updateProfile = async (req, res) => {
@@ -159,6 +169,12 @@ export const updateProfile = async (req, res) => {
     if (bio) user.profile.bio = bio;
 
     if (password) {
+      if (String(password).length < 8) {
+        return res.status(400).json({
+          message: 'Password must be at least 8 characters',
+          success: false,
+        });
+      }
       const hashedPassword = await bcrypt.hash(password, 10);
       user.password = hashedPassword;
     }

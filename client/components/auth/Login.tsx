@@ -1,14 +1,14 @@
 "use client";
 
-// @ts-nocheck
 import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "@/lib/router";
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
-import { useDispatch, useSelector } from "react-redux";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { setLoading, setUser } from "@/lib/redux/authSlice";
 import { Loader2 } from "lucide-react";
 import Logo from "@/components/brand/Logo";
+import { toast } from "react-toastify";
 
 const Login = () => {
     const [input, setInput] = useState({
@@ -16,9 +16,9 @@ const Login = () => {
         password: "",
     });
 
-    const { loading, user } = useSelector((store: any) => store.auth);
+    const { loading, user } = useAppSelector((store) => store.auth);
     const navigate = useNavigate();
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
 
     // Handle input changes
     const changeEventHandler = (e) => {
@@ -38,7 +38,7 @@ const Login = () => {
 
             if (res.data.success) {
                 dispatch(setUser(res.data.user));
-                localStorage.setItem("user", JSON.stringify(res.data.user));
+                localStorage.removeItem("user");
 
                 // Redirect based on user role
                 if (res.data.user.role === "admin") {
@@ -49,11 +49,11 @@ const Login = () => {
                     navigate("/");
                 }
                 
-                alert(res.data.message);
+                toast.success(res.data.message);
             }
         } catch (error) {
             console.error("Login Error:", error);
-            alert(error.response?.data?.message || "Something went wrong!");
+            toast.error(error.response?.data?.message || "Something went wrong!");
         } finally {
             dispatch(setLoading(false));
         }
@@ -61,10 +61,9 @@ const Login = () => {
 
     // Redirect to respective dashboard if already logged in
     useEffect(() => {
-        console.log("User state:", user); // Debugging
         if (user) {
             if (user.role === "admin") {
-                navigate("/admin");
+                navigate("/admin/dashboard");
             } else if (user.role === "cook") {
                 navigate("/cook");
             } else {

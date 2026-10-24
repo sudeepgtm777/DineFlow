@@ -1,4 +1,3 @@
-// @ts-nocheck
 import { combineReducers, configureStore } from "@reduxjs/toolkit";
 import authSlice from "./authSlice";
 import orderSlice from "./orderSlice";
@@ -16,13 +15,6 @@ import {
   REGISTER,
 } from "redux-persist";
 import storage from "redux-persist/lib/storage";
-
-// Persist configuration for auth
-const authPersistConfig = {
-  key: "auth",
-  version: 1,
-  storage,
-};
 
 // Persist configuration for order
 const orderPersistConfig = {
@@ -49,13 +41,11 @@ const cartPersistConfig = {
 //   blacklist: ["temporaryData"],
 // };
 
-const persistedAuthReducer = persistReducer(authPersistConfig, authSlice);
 const persistedOrderReducer = persistReducer(orderPersistConfig, orderSlice);
 const persistedCartReducer = persistReducer(cartPersistConfig, cartSlice);
-// const persistedPosReducer = persistReducer(posPersistConfig, posSlice); // Uncomment if using persist for pos
 
 const rootReducer = combineReducers({
-  auth: persistedAuthReducer,
+  auth: authSlice,
   order: persistedOrderReducer,
   cart: persistedCartReducer,
   pos: posSlice, // Use persistedPosReducer if using persist
@@ -72,4 +62,6 @@ const store = configureStore({
 });
 
 export const persistor = persistStore(store);
+export type RootState = ReturnType<typeof store.getState>;
+export type AppDispatch = typeof store.dispatch;
 export default store;
