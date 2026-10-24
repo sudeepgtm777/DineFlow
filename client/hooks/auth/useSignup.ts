@@ -1,6 +1,5 @@
-// @ts-nocheck
 import { useState } from "react";
-import { useDispatch } from "react-redux";
+import { useAppDispatch } from "@/lib/redux/hooks";
 import { useNavigate } from "@/lib/router";
 import api from "@/lib/axios";
 import { setLoading } from "@/lib/redux/authSlice";
@@ -8,7 +7,7 @@ import { endpoints } from "@/lib/api/endpoints";
 import { toast } from "react-toastify";
 
 const useSignup = () => {
-    const dispatch = useDispatch();
+    const dispatch = useAppDispatch();
     const navigate = useNavigate();
     const [loading, setLocalLoading] = useState(false);
 

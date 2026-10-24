@@ -1,13 +1,12 @@
-// @ts-nocheck
 import { useEffect, useState } from 'react';
 import api from '@/lib/axios';
 import { endpoints } from "@/lib/api/endpoints";
 
 const useOrder = () => {
-  const [orders, setOrders] = useState([]);
+  const [orders, setOrders] = useState<any[]>([]);
   const [totalOrders, setTotalOrders] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
   const fetchOrders = async () => {
     setLoading(true);

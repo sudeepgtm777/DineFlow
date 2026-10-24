@@ -1,11 +1,10 @@
-// @ts-nocheck
 import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 
 const useKitchenStatus = () => {
   const [kitchenStatus, setKitchenStatus] = useState({ pending: 0, prepared: 0 });
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
   useEffect(() => {
     const fetchKitchenStatus = async () => {

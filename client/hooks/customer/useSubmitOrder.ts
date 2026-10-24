@@ -1,14 +1,13 @@
-// @ts-nocheck
 import { useState } from "react";
-import { useDispatch, useSelector } from "react-redux";
+import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
 import { setOrderItems } from "@/lib/redux/orderSlice";
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
 import { toast } from "react-toastify";
-import { removeItem } from "@/lib/redux/cartSlice";
+import { setOrderItems as setCartItems } from "@/lib/redux/cartSlice";
 
 const useSubmitOrder = () => {
-  const dispatch = useDispatch();
+  const dispatch = useAppDispatch();
   const {
     items,
     subtotal,
@@ -17,11 +16,11 @@ const useSubmitOrder = () => {
     deliveryAddress,
     specialInstructions,
     paymentMethod,
-  } = useSelector((state: any) => state.order);
+  } = useAppSelector((state) => state.order);
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [orderSuccess, setOrderSuccess] = useState(false);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<any>(null);
 
   const validateOrder = () => {
     if (!items || items.length === 0) {
@@ -66,6 +65,7 @@ const useSubmitOrder = () => {
     const orderData = {
       customerName: "Guest",
       items: items.map((item) => ({
+        id: item._id || item.id || item.menuItemId,
         name: item.name,
         quantity: item.quantity,
         price: item.price,
@@ -118,7 +118,14 @@ const useSubmitOrder = () => {
       if (response.status === 200 || response.status === 201) {
         setOrderSuccess(true);
         dispatch(setOrderItems({ items: [], subtotal: 0 }));
-        dispatch(removeItem());
+        dispatch(
+          setCartItems({
+            items: [],
+            subtotal: 0,
+            totalItems: 0,
+            isCartOpen: false,
+          }),
+        );
         toast.success(
           activeOrderId ? "Items added to order!" : "Order placed successfully!",
           { position: "top-right" }
