@@ -1,9 +1,7 @@
 import React from 'react';
 import Logo from '@/components/brand/Logo';
-import useSyncAuth from '@/hooks/useSyncAuth';
 
 const CookLayout = ({ children }: any) => {
-  useSyncAuth();
   return (
     <div className="bg-gray-100 min-h-screen">
       <header className="bg-blue-600 text-white p-4">

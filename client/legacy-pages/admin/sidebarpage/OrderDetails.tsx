@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate, useParams } from '@/lib/router';
 import { FiArrowLeft, FiPrinter, FiAlertTriangle } from 'react-icons/fi';
 import { endpoints } from "@/lib/api/endpoints";
-import Logo from '@/components/brand/Logo';
+import BillReceipt from '@/components/admin/BillReceipt';
 import api from '@/lib/axios';
 import { toast } from 'react-toastify';
 
@@ -14,13 +14,6 @@ const OrderDetails = () => {
   const [orders, setOrders] = useState<any[]>([]);
   const [error, setError] = useState<any>(null);
   const [loading, setLoading] = useState(true);
-  const [restaurantInfo] = useState({
-    name: 'DineFlow Restaurant',
-    address: 'Butwal, Nepal',
-    phone: '08254080',
-    taxId: 'TAX-123456789',
-    footerMessage: 'Thank you for dining with us!',
-  });
 
   useEffect(() => {
     if (!tableNumber) {
@@ -31,13 +24,8 @@ const OrderDetails = () => {
 
     const fetchOrders = async () => {
       try {
-        // Log the API endpoint for debugging
-        console.log(
-          `Fetching orders from: ${endpoints.order}/orders/active?tableNumber=${tableNumber}`,
-        );
         const { data } = await api.get(
-          `${endpoints.order}/orders/active`,
-          { params: { tableNumber } },
+          `${endpoints.order}/table-bill/${tableNumber}`,
         );
         setOrders(data.orders || []);
       } catch (err) {
@@ -51,11 +39,19 @@ const OrderDetails = () => {
     fetchOrders();
   }, [tableNumber]);
 
-  const handlePrint = async () => {
+  const handlePrint = () => {
+    window.print();
+  };
+
+  const handleSettle = async () => {
     try {
       if (!tableNumber) {
         throw new Error('Table number is missing');
       }
+      const confirmed = window.confirm(
+        'Settle this table bill and mark unbilled tickets as paid?',
+      );
+      if (!confirmed) return;
 
       const { data: result } = await api.put(
         `${endpoints.order}/orders/complete`,
@@ -63,79 +59,22 @@ const OrderDetails = () => {
       );
 
       if (result.matchedCount === 0) {
-        throw new Error('No active orders found to complete');
+        throw new Error('No unbilled orders found for this table session');
       }
 
-      if (result.modifiedCount > 0) {
-        setOrders((prevOrders) =>
-          prevOrders.map((order) => ({
-            ...order,
-            status: 'completed',
-          })),
-        );
-      }
-
-      const printContents = printRef.current.innerHTML;
-      const originalContents = document.body.innerHTML;
-
-      const printStyle = `
-        @media print {
-          body {
-            font-family: Arial, sans-serif;
-            line-height: 1.4;
-            color: #000;
-            background: #fff;
-          }
-          .no-print {
-            display: none !important;
-          }
-          .print-header {
-            text-align: center;
-            margin-bottom: 20px;
-            border-bottom: 2px dashed #000;
-            padding-bottom: 15px;
-          }
-          .bill-item {
-            page-break-inside: avoid;
-          }
-          .bill-totals {
-            page-break-inside: avoid;
-          }
-          .bill-footer {
-            margin-top: 30px;
-            text-align: center;
-            font-size: 0.9em;
-          }
-        }
-      `;
-
-      document.body.innerHTML = `
-        <style>${printStyle}</style>
-        <div class="print-container">${printContents}</div>
-      `;
-
-      window.print();
-      document.body.innerHTML = originalContents;
-      window.location.reload();
+      toast.success('Bill settled');
+      const { data } = await api.get(
+        `${endpoints.order}/table-bill/${tableNumber}`,
+      );
+      setOrders(data.orders || []);
     } catch (error) {
       console.error('Error completing orders:', error);
-      toast.error(`Failed to complete orders: ${error.message}`);
+      toast.error(
+        error.response?.data?.message ||
+          `Failed to complete orders: ${error.message}`,
+      );
     }
   };
-
-  const getOrderSubtotal = (order) => {
-    return (order.items || []).reduce(
-      (sum, item) => sum + item.price * item.quantity,
-      0,
-    );
-  };
-
-  const grandTotal = orders.reduce(
-    (sum, order) => sum + getOrderSubtotal(order),
-    0,
-  );
-
-  const currentDate = new Date().toLocaleString();
 
   if (loading) {
     return (
@@ -172,133 +111,30 @@ const OrderDetails = () => {
         >
           <FiArrowLeft className='mr-2' /> Back
         </button>
-        <button
-          onClick={handlePrint}
-          className='flex items-center bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700'
-        >
-          <FiPrinter className='mr-2' /> Print Bill
-        </button>
+        <div className='flex gap-2'>
+          <button
+            onClick={handleSettle}
+            disabled={orders.length === 0}
+            className='flex items-center bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed'
+          >
+            Settle bill
+          </button>
+          <button
+            onClick={handlePrint}
+            disabled={orders.length === 0}
+            className='flex items-center bg-indigo-600 text-white px-4 py-2 rounded hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed'
+          >
+            <FiPrinter className='mr-2' /> Print Bill
+          </button>
+        </div>
       </div>
 
-      <div ref={printRef} className='max-w-2xl mx-auto bg-white p-6 shadow-sm'>
-        <div className='print-header'>
-          <div className='flex justify-center mb-3'>
-            <Logo href={null} size="lg" />
-          </div>
-          <h1 className='text-3xl font-bold mb-1'>{restaurantInfo.name}</h1>
-          <p className='text-sm'>{restaurantInfo.address}</p>
-          <p className='text-sm'>Tel: {restaurantInfo.phone}</p>
-          <p className='text-sm mt-2 font-medium'>
-            TAX ID: {restaurantInfo.taxId}
-          </p>
-        </div>
-
-        <div className='mb-6 border-b pb-4'>
-          <div className='flex justify-between'>
-            <div>
-              <p className='font-semibold'>
-                Table: <span className='font-normal'>#{tableNumber}</span>
-              </p>
-              <p className='font-semibold'>
-                Date: <span className='font-normal'>{currentDate}</span>
-              </p>
-            </div>
-            <div className='text-right'>
-              <p className='font-semibold'>
-                Bill No:{' '}
-                <span className='font-normal'>
-                  #{orders[0]?._id.slice(-6) || 'N/A'}
-                </span>
-              </p>
-              <p className='font-semibold'>
-                Staff: <span className='font-normal'>Admin</span>
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {orders.length === 0 ? (
-          <p className='text-center py-8'>No active orders for this table.</p>
-        ) : (
-          <>
-            <div className='mb-6'>
-              <div className='grid grid-cols-12 gap-2 font-bold border-b pb-2 mb-2'>
-                <div className='col-span-6'>Item</div>
-                <div className='col-span-2 text-center'>Qty</div>
-                <div className='col-span-2 text-right'>Price</div>
-                <div className='col-span-2 text-right'>Total</div>
-              </div>
-
-              {orders.map((order, orderIndex) => (
-                <div key={order._id || orderIndex} className='bill-item mb-4'>
-                  <div className='flex justify-between items-center mb-2'>
-                    <span className='font-semibold'>
-                      Order #{order._id?.slice(-6) || `CUST-${orderIndex + 1}`}
-                    </span>
-                    <span
-                      className={`text-xs px-2 py-1 rounded ${
-                        order.status === 'Pending'
-                          ? 'bg-yellow-100'
-                          : order.status === 'In Progress'
-                            ? 'bg-blue-100'
-                            : order.status === 'Completed'
-                              ? 'bg-green-100'
-                              : 'bg-gray-100'
-                      }`}
-                    >
-                      {order.status}
-                    </span>
-                  </div>
-
-                  {(order.items || []).map((item, itemIndex) => (
-                    <div
-                      key={`${item.name}-${itemIndex}`}
-                      className='grid grid-cols-12 gap-2 py-1 items-center'
-                    >
-                      <div className='col-span-6'>
-                        {item.name}
-                        {item.specialInstructions && (
-                          <p className='text-xs text-gray-500'>
-                            Note: {item.specialInstructions}
-                          </p>
-                        )}
-                      </div>
-                      <div className='col-span-2 text-center'>
-                        {item.quantity}
-                      </div>
-                      <div className='col-span-2 text-right'>
-                        Rs {item.price.toFixed(2)}
-                      </div>
-                      <div className='col-span-2 text-right'>
-                        Rs {(item.price * item.quantity).toFixed(2)}
-                      </div>
-                    </div>
-                  ))}
-
-                  <div className='grid grid-cols-12 gap-2 border-t pt-2 mt-2'>
-                    <div className='col-span-10 text-right font-semibold'>
-                      Subtotal:
-                    </div>
-                    <div className='col-span-2 text-right font-semibold'>
-                      Rs {getOrderSubtotal(order).toFixed(2)}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            <div className='bill-totals border-t-2 border-dashed pt-4'>
-              <div className='flex justify-between font-bold text-lg'>
-                <span>Grand Total:</span>
-                <span>Rs {grandTotal.toFixed(2)}</span>
-              </div>
-            </div>
-
-            <div className='bill-footer mt-8 pt-4 border-t text-sm'>
-              <p className='mb-1'>{restaurantInfo.footerMessage}</p>
-            </div>
-          </>
-        )}
+      <div ref={printRef}>
+        <BillReceipt
+          orders={orders}
+          tableNumber={tableNumber}
+          emptyMessage='No open bill for this table. After release, a new session can start.'
+        />
       </div>
     </div>
   );

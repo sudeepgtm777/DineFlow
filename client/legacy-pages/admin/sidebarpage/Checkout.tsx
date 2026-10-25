@@ -19,12 +19,7 @@ const CheckoutPage = () => {
   } = useAppSelector((state) => state.pos);
 
   const handlePrint = () => {
-    const printContents = printRef.current.innerHTML;
-    const originalContents = document.body.innerHTML;
-    document.body.innerHTML = printContents;
     window.print();
-    document.body.innerHTML = originalContents;
-    window.location.reload(); // reload the page to restore React state
   };
 
   return (
@@ -32,7 +27,7 @@ const CheckoutPage = () => {
       {/* Printable Content */}
       <div
         ref={printRef}
-        className='p-2 text-sm font-mono w-75 bg-white text-black'
+        className='p-2 text-sm font-mono w-3/4 max-w-xl bg-white text-black'
         style={{ lineHeight: '1.4' }}
       >
         <div className='text-center mb-2'>

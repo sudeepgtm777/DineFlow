@@ -12,18 +12,36 @@ const useCart = () => {
   const cartState = useAppSelector((state) => state.cart);
 
   const addToCart = (item) => {
+    const menuId = item._id || item.menuItemId || item.id;
+    const quantity = item.quantity || 1;
+    const existing = cartState.items.find(
+      (entry) =>
+        (entry._id || entry.menuItemId || entry.id) === menuId &&
+        (entry.specialInstructions || "") === (item.specialInstructions || ""),
+    );
+
+    if (existing?.cartItemId) {
+      dispatch(
+        updateItemQuantity({
+          cartItemId: existing.cartItemId,
+          quantity: existing.quantity + quantity,
+        }),
+      );
+      return;
+    }
+
     const cartItem = {
       ...item,
+      _id: item._id || item.menuItemId,
+      quantity,
       cartItemId:
-        item.cartItemId ||
-        `${item._id || item.id || item.name}-${Date.now()}`,
+        item.cartItemId || `${menuId || item.name}-${Date.now()}`,
     };
     dispatch(
       setOrderItems({
         items: [...cartState.items, cartItem],
         subtotal: cartState.subtotal + cartItem.price * cartItem.quantity,
         totalItems: cartState.totalItems + cartItem.quantity,
-        isCartOpen: true,
       })
     );
   };

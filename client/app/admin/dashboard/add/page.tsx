@@ -1,7 +1,5 @@
-"use client";
-
-import AddMenuItem from "@/legacy-pages/admin/menu/AddMenuItem";
+import { redirect } from "next/navigation";
 
 export default function Page() {
-  return <AddMenuItem />;
+  redirect("/admin/menu");
 }

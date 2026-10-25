@@ -1,9 +1,26 @@
-import Order from '../models/order.model';
 import Table from '../models/table.model';
+import {
+  getTableSessionId,
+  sessionHasUnbilledOrders,
+} from '../utils/tableSession';
 import QRCode from 'qrcode';
 import cloudinary from '../utils/cloudinary';
 import fs from 'fs';
 import path from 'path';
+
+const compareTables = (a, b) => {
+  const aOrder =
+    typeof a.sortOrder === 'number' ? a.sortOrder : Number(a.tableNumber);
+  const bOrder =
+    typeof b.sortOrder === 'number' ? b.sortOrder : Number(b.tableNumber);
+  const aRank = Number.isFinite(aOrder) ? aOrder : Number.MAX_SAFE_INTEGER;
+  const bRank = Number.isFinite(bOrder) ? bOrder : Number.MAX_SAFE_INTEGER;
+  if (aRank !== bRank) return aRank - bRank;
+  return String(a.tableNumber).localeCompare(String(b.tableNumber), undefined, {
+    numeric: true,
+    sensitivity: 'base',
+  });
+};
 
 export const createTable = async (req, res) => {
   try {
@@ -22,8 +39,16 @@ export const createTable = async (req, res) => {
       return res.status(400).json({ message: 'Table already exists.' });
     }
 
+    const lastOrdered = await Table.findOne()
+      .sort({ sortOrder: -1 })
+      .select('sortOrder tableNumber');
+    const nextOrder =
+      typeof lastOrdered?.sortOrder === 'number'
+        ? lastOrdered.sortOrder + 1
+        : Number(tableNumber) || 0;
+
     // Create table entry
-    const table = new Table({ tableNumber });
+    const table = new Table({ tableNumber, sortOrder: nextOrder });
 
     // Generate QR code URL
     const qrUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order?table=${tableNumber}`;
@@ -74,17 +99,48 @@ export const createTable = async (req, res) => {
 export const getAllTables = async (req, res) => {
   try {
     const tables = await Table.find().populate('currentOrderId');
-    res.json(tables);
+    res.json([...tables].sort(compareTables));
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+export const getAvailableTables = async (req, res) => {
+  try {
+    const tables = await Table.find().select('tableNumber isBooked sortOrder');
+    res.json({ tables: [...tables].sort(compareTables) });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+export const reorderTables = async (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+      return res.status(400).json({ message: 'orderedIds is required' });
+    }
+
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        Table.findByIdAndUpdate(id, { sortOrder: index }),
+      ),
+    );
+
+    res.status(200).json({ message: 'Tables reordered' });
+  } catch (err) {
+    console.error('Error reordering tables:', err);
+    res
+      .status(500)
+      .json({ message: 'Internal server error', error: err.message });
   }
 };
 
 export const getTableByNumber = async (req, res) => {
   try {
     const { tableNumber } = req.params;
-    const table = await Table.findOne({ tableNumber }).populate(
-      'currentOrderId',
+    const table = await Table.findOne({ tableNumber }).select(
+      'tableNumber isBooked sortOrder qrUrl qrImage',
     );
     if (!table) return res.status(404).json({ message: 'Table not found' });
     res.json(table);
@@ -102,26 +158,17 @@ export const releaseTable = async (req, res) => {
       return res.status(400).json({ message: 'Table is not booked' });
     }
 
-    // If there's no currentOrderId, allow release (table was booked but no order created)
-    if (!table.currentOrderId) {
-      table.isBooked = false;
-      table.currentOrderId = null;
-      await table.save();
-      return res.json({ message: 'Table released successfully' });
-    }
-
-    // If there's an order, check if it exists and is completed
-    const order = await Order.findById(table.currentOrderId);
-    if (!order) {
-      // Order doesn't exist, allow release
-      table.isBooked = false;
-      table.currentOrderId = null;
-      await table.save();
-      return res.json({ message: 'Table released successfully' });
-    }
-
-    if (order.status !== 'completed') {
-      return res.status(400).json({ message: 'Order not completed yet' });
+    const sessionId = await getTableSessionId(table);
+    if (sessionId) {
+      const stillUnbilled = await sessionHasUnbilledOrders(
+        table.tableNumber,
+        sessionId,
+      );
+      if (stillUnbilled) {
+        return res.status(400).json({
+          message: 'Settle the bill before releasing this table',
+        });
+      }
     }
 
     // Normal release flow
@@ -137,7 +184,9 @@ export const releaseTable = async (req, res) => {
 
 export const getAllTableQRCodes = async (req, res) => {
   try {
-    const tables = await Table.find().select('tableNumber qrImage');
+    const tables = [...(await Table.find().select('tableNumber qrImage sortOrder'))].sort(
+      compareTables,
+    );
     const qrCodes = tables.map((table) => ({
       tableId: table._id,
       tableNumber: table.tableNumber,
@@ -212,8 +261,19 @@ export const toggleTableBooking = async (req, res) => {
       return res.status(404).json({ message: 'Table not found' });
     }
 
-    // If unbooking, clear the current order
     if (!isBooked) {
+      const sessionId = await getTableSessionId(table);
+      if (sessionId) {
+        const stillUnbilled = await sessionHasUnbilledOrders(
+          table.tableNumber,
+          sessionId,
+        );
+        if (stillUnbilled) {
+          return res.status(400).json({
+            message: 'Settle the bill before marking this table available',
+          });
+        }
+      }
       table.currentOrderId = null;
     }
 

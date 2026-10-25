@@ -129,11 +129,11 @@ const ActiveOrder = () => {
                   </h2>
                   <span
                     className={`text-sm font-medium px-3 py-1 rounded-full ${
-                      order.status === "Pending"
+                      order.status === "pending"
                         ? "bg-yellow-100 text-yellow-800"
-                        : order.status === "In Progress"
+                        : order.status === "in-progress"
                         ? "bg-blue-100 text-blue-800"
-                        : order.status === "Completed"
+                        : order.status === "completed"
                         ? "bg-green-100 text-green-800"
                         : "bg-gray-100 text-gray-800"
                     }`}
@@ -158,7 +158,7 @@ const ActiveOrder = () => {
                         )}
                       </div>
                       <p className="text-sm font-medium text-gray-800">
-                        ${(item.price * item.quantity).toFixed(2)}
+                        Rs. {(item.price * item.quantity).toFixed(2)}
                       </p>
                     </div>
                   ))}
@@ -166,7 +166,7 @@ const ActiveOrder = () => {
                 <div className="mt-4 flex justify-between items-center text-base font-bold">
                   <span>Subtotal:</span>
                   <span className="text-indigo-600">
-                    ${(order.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
+                    Rs. {(order.items || []).reduce((sum, item) => sum + item.price * item.quantity, 0).toFixed(2)}
                   </span>
                 </div>
               </div>

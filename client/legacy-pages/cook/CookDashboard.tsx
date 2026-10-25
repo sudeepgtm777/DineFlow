@@ -5,6 +5,7 @@ import api from '@/lib/axios';
 import { endpoints } from "@/lib/api/endpoints"; // Add endpoints.order
 import { toast } from 'react-toastify';
 import React, { useEffect, useState } from 'react';
+import { io } from 'socket.io-client';
 
 const CookDashboard = () => {
   const [orders, setOrders] = useState<any[]>([]);
@@ -43,8 +44,18 @@ const CookDashboard = () => {
     };
 
     fetchOrders();
-    const interval = setInterval(fetchOrders, 10000); // Check every 10 seconds
-    return () => clearInterval(interval);
+    const interval = setInterval(fetchOrders, 10000);
+    const apiBase =
+      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
+    const socketUrl = apiBase.replace(/\/api\/v1\/?$/, '');
+    const socket = io(socketUrl, { withCredentials: true });
+    socket.on('order:updated', () => {
+      fetchOrders();
+    });
+    return () => {
+      clearInterval(interval);
+      socket.disconnect();
+    };
   }, []);
 
   const handleStatusChange = async (orderId, newStatus) => {
@@ -130,7 +141,7 @@ const CookDashboard = () => {
           className={`px-4 py-2 font-medium text-sm rounded-r-lg ${activeTab === 'completed' ? 'bg-green-500 text-white' : 'bg-gray-200 text-gray-700'}`}
           onClick={() => setActiveTab('completed')}
         >
-          Completed ({orders.filter((o) => o.status === 'completed').length})
+          Ready ({orders.filter((o) => o.status === 'completed').length})
         </button>
       </nav>
 
@@ -223,12 +234,12 @@ const CookDashboard = () => {
                       className='px-4 py-2 bg-green-500 text-white font-semibold rounded-md hover:bg-green-600'
                       onClick={() => handleStatusChange(order._id, 'completed')}
                     >
-                      Mark as Completed
+                      Mark as Ready
                     </button>
                   )}
                   {order.status === 'completed' && (
                     <span className='px-4 py-2 bg-green-100 text-green-800 font-semibold rounded-md'>
-                      ✅ Completed
+                      Ready
                     </span>
                   )}
                 </div>

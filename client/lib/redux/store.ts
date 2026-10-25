@@ -14,22 +14,30 @@ import {
   PURGE,
   REGISTER,
 } from "redux-persist";
-import storage from "redux-persist/lib/storage";
+import createWebStorage from "redux-persist/lib/storage/createWebStorage";
 
-// Persist configuration for order
+const createNoopStorage = () => ({
+  getItem: async () => null,
+  setItem: async (_key: string, value: string) => value,
+  removeItem: async () => undefined,
+});
+
+const storage =
+  typeof window === "undefined"
+    ? createNoopStorage()
+    : createWebStorage("local");
+
 const orderPersistConfig = {
   key: "order",
   version: 1,
   storage,
-  blacklist: ["items"],
+  blacklist: ["phoneNumber", "deliveryAddress"],
 };
 
-// Persist configuration for cart
 const cartPersistConfig = {
   key: "cart",
   version: 1,
   storage,
-  blacklist: ["items", "subtotal", "totalItems"],
 };
 
 // ✅ You can also add a persist config for posSlice if needed

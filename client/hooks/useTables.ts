@@ -18,6 +18,10 @@ export const useTables = () => {
     }
   };
 
+  const reorderTables = async (orderedIds: string[]) => {
+    await api.post(`${endpoints.table}/reorder`, { orderedIds });
+  };
+
   const createTable = async (newTableNumber) => {
     if (!newTableNumber) return toast.warning("Please enter a table number");
     try {
@@ -53,5 +57,13 @@ export const useTables = () => {
     fetchTables();
   }, []);
 
-  return { tables, loading, createTable, releaseTable, fetchTables };
+  return {
+    tables,
+    setTables,
+    loading,
+    createTable,
+    releaseTable,
+    fetchTables,
+    reorderTables,
+  };
 };

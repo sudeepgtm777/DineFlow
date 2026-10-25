@@ -23,7 +23,7 @@ const MenuItemModal = ({ item, onClose, onSave }: any) => {
   useEffect(() => {
     const fetchCategories = async () => {
       try {
-        const response = await api.get(`${endpoints.menuItem}/api/v1/menuitem/menu-categories`);
+        const response = await api.get(`${endpoints.menuItem}/menu-categories`);
         setCategories(response.data.categories || []);
         setLoadingCategories(false);
       } catch (error) {
@@ -46,7 +46,7 @@ const MenuItemModal = ({ item, onClose, onSave }: any) => {
         description: item.description,
         price: item.price,
         category: item.category,
-        status: item.status,
+        status: item.status === 'out of stock' ? 'unavailable' : item.status,
         image: null,
         previewImage: item.image?.url || '',
       });
@@ -120,7 +120,7 @@ const MenuItemModal = ({ item, onClose, onSave }: any) => {
         });
       }
 
-      onSave(response.data);
+      onSave(response.data.menuItem || response.data);
       setIsUploading(false);
     } catch (error) {
       console.error('Error saving menu item:', error);
@@ -131,7 +131,7 @@ const MenuItemModal = ({ item, onClose, onSave }: any) => {
 
   return (
     <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-xl shadow-lg w-full max-w-md max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-xl shadow-lg w-full max-w-lg max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center border-b p-4">
           <h2 className="text-xl font-bold text-gray-800">
             {item ? 'Edit Menu Item' : 'Add New Menu Item'}
@@ -172,7 +172,7 @@ const MenuItemModal = ({ item, onClose, onSave }: any) => {
             <div>
               <label className="block text-gray-700 text-sm font-medium mb-1">Price*</label>
               <div className="relative">
-                <span className="absolute left-3 top-2 text-gray-500">$</span>
+                <span className="absolute left-3 top-2.5 text-sm text-gray-500">Rs.</span>
                 <input
                   type="number"
                   name="price"
@@ -180,7 +180,7 @@ const MenuItemModal = ({ item, onClose, onSave }: any) => {
                   onChange={handleChange}
                   min="0"
                   step="0.01"
-                  className={`w-full pl-8 p-2 border ${errors.price ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-blue-500 outline-none`}
+                  className={`w-full pl-10 p-2 border ${errors.price ? 'border-red-500' : 'border-gray-300'} rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none`}
                 />
               </div>
               {errors.price && <p className="mt-1 text-sm text-red-600">{errors.price}</p>}
@@ -235,7 +235,7 @@ const MenuItemModal = ({ item, onClose, onSave }: any) => {
               className="w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
             >
               <option value="available">Available</option>
-              <option value="out of stock">Out of Stock</option>
+              <option value="unavailable">Out of Stock</option>
             </select>
           </div>
 

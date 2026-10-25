@@ -13,11 +13,13 @@ export type AuthUser = {
 
 type AuthState = {
   loading: boolean;
+  hydrated: boolean;
   user: AuthUser;
 };
 
 const initialState: AuthState = {
   loading: false,
+  hydrated: false,
   user: null,
 };
 
@@ -30,10 +32,12 @@ const authSlice = createSlice({
     },
     setUser: (state, action: PayloadAction<AuthUser>) => {
       state.user = action.payload;
+      state.hydrated = true;
     },
     logout: (state) => {
       state.user = null;
       state.loading = false;
+      state.hydrated = true;
     },
   },
 });

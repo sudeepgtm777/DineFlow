@@ -3,20 +3,17 @@ import AdminNavbar from './AdminNavbar';
 import Sidebar from './Sidebar';
 import { useNavigate } from '@/lib/router';
 import { useAppSelector } from '@/lib/redux/hooks';
-import useSyncAuth from '@/hooks/useSyncAuth';
 
 const AdminLayout = ({ children }: any) => {
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
-  const { user } = useAppSelector((store) => store.auth);
+  const { user, hydrated } = useAppSelector((store) => store.auth);
   const navigate = useNavigate();
 
-  useSyncAuth();
-
   useEffect(() => {
-    if (!user) {
+    if (hydrated && !user) {
       navigate("/login");
     }
-  }, [user, navigate]);
+  }, [user, hydrated, navigate]);
   
   const toggleSidebar = () => {
     setIsSidebarOpen(!isSidebarOpen);
@@ -24,8 +21,9 @@ const AdminLayout = ({ children }: any) => {
 
   return (
     <div className="flex h-screen bg-gray-100">
-      {/* Sidebar */}
-      <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      <div className="no-print">
+        <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
+      </div>
 
       {isSidebarOpen && (
         <div
@@ -36,8 +34,9 @@ const AdminLayout = ({ children }: any) => {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Top Navbar */}
-        <AdminNavbar toggleSidebar={toggleSidebar} />
+        <div className="no-print">
+          <AdminNavbar toggleSidebar={toggleSidebar} />
+        </div>
 
         {/* Page Content */}
         <main className="flex-1 overflow-x-hidden overflow-y-auto bg-gray-100 p-4">

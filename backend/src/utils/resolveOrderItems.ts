@@ -1,3 +1,4 @@
+import mongoose from 'mongoose';
 import MenuItem from '../models/menuItem.model';
 
 class HttpError extends Error {
@@ -8,6 +9,11 @@ class HttpError extends Error {
   }
 }
 
+const isMongoId = (value) =>
+  typeof value === 'string' &&
+  mongoose.Types.ObjectId.isValid(value) &&
+  String(new mongoose.Types.ObjectId(value)) === value;
+
 const resolveOrderItems = async (rawItems = []) => {
   if (!Array.isArray(rawItems) || rawItems.length === 0) {
     throw new HttpError('No order items', 400);
@@ -16,9 +22,9 @@ const resolveOrderItems = async (rawItems = []) => {
   const resolved = [];
 
   for (const item of rawItems) {
-    const menuId = item.id || item._id || item.menuItemId;
-    if (!menuId) {
-      throw new HttpError('Each item must include a menu item id', 400);
+    const menuId = String(item._id || item.menuItemId || item.id || '');
+    if (!isMongoId(menuId)) {
+      throw new HttpError('Menu item not found', 400);
     }
 
     const quantity = Number(item.quantity);
@@ -29,6 +35,9 @@ const resolveOrderItems = async (rawItems = []) => {
     const menuItem = await MenuItem.findById(menuId);
     if (!menuItem) {
       throw new HttpError(`Menu item not found: ${menuId}`, 400);
+    }
+    if (menuItem.status && menuItem.status !== 'available') {
+      throw new HttpError(`${menuItem.name} is unavailable`, 400);
     }
 
     resolved.push({

@@ -7,22 +7,28 @@ import useOrderStats from "@/hooks/useOrderStats";
 import useDailySales from "@/hooks/useDailySales";
 import useTotalMenuItems from "@/hooks/useTotalMenuItems";
 import useTableStats from "@/hooks/useTableStats";
-import { ShoppingBag, DollarSign, UtensilsCrossed, Plus, UserPlus, Boxes, Calendar } from "lucide-react";
+import { ShoppingBag, DollarSign, UtensilsCrossed, Plus, Calendar } from "lucide-react";
+
+const STAT_COLORS = {
+  blue: { border: "border-blue-500", bg: "bg-blue-100", text: "text-blue-600" },
+  green: { border: "border-green-500", bg: "bg-green-100", text: "text-green-600" },
+  purple: { border: "border-purple-500", bg: "bg-purple-100", text: "text-purple-600" },
+};
 
 const AdminDashboard = () => {
   const { totalOrders, loading: ordersLoading, error: ordersError } = useOrderStats();
   const { data: dailySales, loading: salesLoading, error: salesError } = useDailySales();
   const { totalMenuItems, loading: menuLoading, error: menuError } = useTotalMenuItems();
   const { kitchenStatus, loading: kitchenLoading, error: kitchenError } = useKitchenStatus();
-  // const { staffStatus, loading: staffLoading, error: staffError } = useStaffManagement();
   const { stats: tableStats, loading: tableStatsLoading, error: tableStatsError } = useTableStats();
 
   const StatCard = ({ title, value, icon, color, loading, error, link }) => {
+    const palette = STAT_COLORS[color] || STAT_COLORS.blue;
     const content = (
-      <div className={`bg-white p-6 rounded-xl shadow-sm border-l-4 border-${color}-500 hover:shadow-md transition-all h-full flex flex-col`}>
+      <div className={`bg-white p-6 rounded-xl shadow-sm border-l-4 ${palette.border} hover:shadow-md transition-all h-full flex flex-col`}>
         <div className="flex justify-between items-start mb-4">
           <h3 className="text-sm font-medium text-gray-500 uppercase tracking-wider">{title}</h3>
-          <div className={`p-2 rounded-lg bg-${color}-100 text-${color}-600`}>
+          <div className={`p-2 rounded-lg ${palette.bg} ${palette.text}`}>
             {icon}
           </div>
         </div>
@@ -77,7 +83,7 @@ const AdminDashboard = () => {
         <h2 className="text-lg font-semibold text-gray-700 mb-4">Key Metrics</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard
-            title="Total Orders"
+            title="Today's Orders"
             value={totalOrders || 0}
             icon={<ShoppingBag className="w-5 h-5" />}
             color="blue"
@@ -117,7 +123,8 @@ const AdminDashboard = () => {
             error={kitchenError}
             items={[
               { label: "Pending Orders", value: kitchenStatus?.pending || 0 },
-              { label: "Prepared Orders", value: kitchenStatus?.prepared || 0 },
+              { label: "In Kitchen", value: kitchenStatus?.inProgress || 0 },
+              { label: "Completed Today", value: kitchenStatus?.prepared || 0 },
             ]}
           />
           {/* <StatusCard
@@ -130,13 +137,13 @@ const AdminDashboard = () => {
             ]}
           /> */}
           <StatusCard
-            title="Table Reservations"
+            title="Table Occupancy"
             loading={tableStatsLoading}
             error={tableStatsError}
             items={[
               { label: "Total Tables", value: tableStats?.totalTables || 0 },
-              { label: "Booked Tables", value: tableStats?.bookedTables || 0 },
-              { label: "Unbooked Tables", value: tableStats?.unbookedTables || 0 }, // Replaced activeTables
+              { label: "Occupied Tables", value: tableStats?.bookedTables || 0 },
+              { label: "Available Tables", value: tableStats?.unbookedTables || 0 },
             ]}
           />
         </div>
@@ -147,7 +154,7 @@ const AdminDashboard = () => {
         <h2 className="text-lg font-semibold text-gray-700 mb-4">Quick Actions</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
           <Link
-            to="/admin/dashboard/add"
+            to="/admin/menu"
             className="bg-white p-6 rounded-xl shadow-sm border border-dashed border-gray-300 hover:border-blue-500 hover:shadow-md transition-all flex items-center justify-center flex-col"
           >
             <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center mb-3">

@@ -8,6 +8,7 @@ import {
   deleteRoom,
   updateRoom,
   deleteRoomPhoto,
+  reorderRooms,
 } from '../controllers/room.controller';
 
 import isAuthenticated from '../middlewares/isAuthenticated';
@@ -24,6 +25,7 @@ router.post(
   createRoom,
 );
 router.get('/getrooms', getAllRooms);
+router.post('/reorder', isAuthenticated, isAdmin, reorderRooms);
 router.get('/:roomNumber', getRoomByNumber);
 router.put('/checkin/:roomNumber', isAuthenticated, isAdmin, checkInRoom);
 router.put('/checkout/:roomNumber', isAuthenticated, isAdmin, checkOutRoom);

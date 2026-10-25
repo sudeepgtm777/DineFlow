@@ -15,23 +15,23 @@ const MenuPage = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [currentItem, setCurrentItem] = useState<any>(null);
   const [sortConfig, setSortConfig] = useState({ key: 'name', direction: 'ascending' });
+  const [categories, setCategories] = useState<string[]>(['all']);
 
-  // Categories (excluding 'all' for the modal)
-  const categories = ['all', 'Appetizers', 'Main Course', 'Desserts', 'Drinks'];
-
-  // Fetch menu items from API
   useEffect(() => {
     const fetchMenuItems = async () => {
       try {
-        const response = await api.get(`${endpoints.menuItem}/menu-items`)
-        // Handle different API response structures
-   
-        setMenuItems(response.data.menuItems);
+        const [itemsRes, categoriesRes] = await Promise.all([
+          api.get(`${endpoints.menuItem}/menu-items`),
+          api.get(`${endpoints.menuItem}/menu-categories`),
+        ]);
+        setMenuItems(itemsRes.data.menuItems);
+        const apiCategories = categoriesRes.data.categories || [];
+        setCategories(['all', ...apiCategories.filter(Boolean)]);
         setLoading(false);
       } catch (error) {
         console.error('Error fetching menu items:', error);
         toast.error('Failed to load menu items');
-        setMenuItems([]); // Fallback to empty array on error
+        setMenuItems([]);
         setLoading(false);
       }
     };
@@ -53,8 +53,8 @@ const MenuPage = () => {
   // Filter items
   const filteredItems = sortedItems.filter((item) => {
     const matchesSearch =
-      item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      item.description.toLowerCase().includes(searchTerm.toLowerCase());
+      (item.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (item.description || '').toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === 'all' || item.category === selectedCategory;
     const matchesStatus = selectedStatus === 'all' || item.status === selectedStatus;
     return matchesSearch && matchesCategory && matchesStatus;
@@ -84,6 +84,10 @@ const MenuPage = () => {
 
   // Handle save (add or update)
   const handleSave = (savedItem) => {
+    if (!savedItem?._id) {
+      toast.error('Failed to save menu item');
+      return;
+    }
     if (currentItem) {
       // Update existing item
       setMenuItems(menuItems.map((item) => (item._id === savedItem._id ? savedItem : item)));
@@ -161,7 +165,7 @@ const MenuPage = () => {
             >
               <option value="all">All Statuses</option>
               <option value="available">Available</option>
-              <option value="out of stock">Out of Stock</option>
+              <option value="unavailable">Out of Stock</option>
             </select>
           </div>
         </div>

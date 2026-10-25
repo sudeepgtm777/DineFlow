@@ -1,46 +1,23 @@
 import Table from "../models/table.model";
-import Order from "../models/order.model";
+import {
+  getSessionOrders,
+  getTableSessionId,
+} from "../utils/tableSession";
 
 export const getBillDetails = async (req, res) => {
   try {
     const { tableNumber } = req.params;
 
-    const table = await Table.findOne({ tableNumber }).populate("currentOrderId");
+    const table = await Table.findOne({ tableNumber: String(tableNumber) });
     if (!table) {
       return res.status(404).json({ message: "Table not found" });
     }
 
-    let orders = [];
-    const currentOrder = table.currentOrderId as any;
-
-    if (currentOrder && currentOrder.status === "completed") {
-      orders = await Order.find({
-        tableNumber: String(tableNumber),
-        orderType: "dine-in",
-        bookingSessionId: currentOrder.bookingSessionId,
-        status: "completed",
-      }).sort({ createdAt: 1 });
-    } else {
-      const latestCompleted = await Order.findOne({
-        tableNumber: String(tableNumber),
-        orderType: "dine-in",
-        status: "completed",
-      }).sort({ updatedAt: -1, createdAt: -1 });
-
-      if (!latestCompleted) {
-        return res.status(400).json({ message: "No completed order for this table" });
-      }
-
-      orders = await Order.find({
-        tableNumber: String(tableNumber),
-        orderType: "dine-in",
-        bookingSessionId: latestCompleted.bookingSessionId,
-        status: "completed",
-      }).sort({ createdAt: 1 });
-    }
+    const sessionId = await getTableSessionId(table);
+    const orders = await getSessionOrders(tableNumber, sessionId);
 
     if (!orders.length) {
-      return res.status(400).json({ message: "No completed order for this table" });
+      return res.status(400).json({ message: "No open session bill for this table" });
     }
 
     const items = orders.flatMap((order) =>
@@ -51,7 +28,15 @@ export const getBillDetails = async (req, res) => {
         total: item.quantity * item.price,
       })),
     );
-    const subtotal = orders.reduce((sum, order) => sum + order.subtotal, 0);
+    const subtotal = orders.reduce(
+      (sum, order) =>
+        sum +
+        order.items.reduce(
+          (itemSum, item) => itemSum + item.price * item.quantity,
+          0,
+        ),
+      0,
+    );
     const primary = orders[orders.length - 1];
 
     const bill = {
@@ -64,8 +49,9 @@ export const getBillDetails = async (req, res) => {
       completedAt: primary.updatedAt || primary.createdAt,
       items,
       subtotal,
-      tax: (subtotal * 0.13).toFixed(2),
-      totalAmount: (subtotal * 1.13).toFixed(2),
+      tax: 0,
+      totalAmount: subtotal,
+      orders,
     };
 
     res.status(200).json(bill);

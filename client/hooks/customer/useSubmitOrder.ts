@@ -14,6 +14,7 @@ const useSubmitOrder = () => {
     orderType,
     tableNumber,
     deliveryAddress,
+    phoneNumber,
     specialInstructions,
     paymentMethod,
   } = useAppSelector((state) => state.order);
@@ -34,6 +35,10 @@ const useSubmitOrder = () => {
     if (orderType === "delivery" && !deliveryAddress) {
       console.warn("Order validation failed: Missing delivery address");
       return "Delivery address is required";
+    }
+    if (orderType === "delivery" && !phoneNumber) {
+      console.warn("Order validation failed: Missing phone number");
+      return "Phone number is required for delivery";
     }
     if (!paymentMethod) {
       console.warn("Order validation failed: Missing payment method");
@@ -62,18 +67,27 @@ const useSubmitOrder = () => {
       return;
     }
 
+    const toMenuId = (item) => {
+      const candidates = [item._id, item.menuItemId, item.id];
+      return candidates.find(
+        (id) => typeof id === "string" && /^[a-fA-F0-9]{24}$/.test(id),
+      );
+    };
+
+    const orderItems = items.map((item) => ({
+      id: toMenuId(item),
+      name: item.name,
+      quantity: item.quantity,
+      specialInstructions: item.specialInstructions || "",
+    }));
+
     const orderData = {
       customerName: "Guest",
-      items: items.map((item) => ({
-        id: item._id || item.id || item.menuItemId,
-        name: item.name,
-        quantity: item.quantity,
-        price: item.price,
-        specialInstructions: item.specialInstructions || null,
-      })),
+      items: orderItems,
       orderType,
       tableNumber: orderType === "dine-in" ? tableNumber : undefined,
       deliveryAddress: orderType === "delivery" ? deliveryAddress : undefined,
+      phoneNumber: orderType === "delivery" ? phoneNumber : undefined,
       specialInstructions: specialInstructions || undefined,
       paymentMethod,
       subtotal,
@@ -88,7 +102,7 @@ const useSubmitOrder = () => {
         // Add items to existing order
         response = await api.post(
           `${endpoints.order}/add-item/${activeOrderId}`,
-          { newItems: items, tableNumber },
+          { newItems: orderItems, tableNumber },
           {
             timeout: 10000,
             headers: {

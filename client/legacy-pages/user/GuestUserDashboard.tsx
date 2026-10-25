@@ -14,6 +14,7 @@ import { useMenu } from '@/hooks/customer/useMenu';
 import { useMobileMenu } from '@/hooks/customer/useMobileMenu';
 import { endpoints } from "@/lib/api/endpoints";
 import Logo from '@/components/brand/Logo';
+import CheckoutBar from '@/components/customer/CheckoutBar';
 import api from '@/lib/axios';
 import { toast } from 'react-toastify';
 
@@ -70,17 +71,15 @@ const GuestUserDashboard = () => {
     fetchActiveOrder();
   }, [tableNumber]);
 
-  // Handle proceeding to checkout for cart items
   const handleProceedToCheckout = () => {
-    if (!tableNumber) {
-      toast.error('Missing table number.');
+    if (cart.length === 0 || totalItems === 0) {
+      toast.error('Please select a item to proceed to checkout.');
       return;
     }
-    if (cart.length === 0) {
-      toast.error('Your cart is empty.');
-      return;
-    }
-    navigate(`/guest-checkout?table=${tableNumber}`);
+    const checkoutUrl = tableNumber
+      ? `/guest-checkout?table=${tableNumber}`
+      : '/guest-checkout';
+    navigate(checkoutUrl);
   };
 
   // Navigate to active orders page
@@ -189,7 +188,7 @@ const GuestUserDashboard = () => {
         </div>
       )}
 
-      <main className='container mx-auto px-4 py-6'>
+      <main className='container mx-auto px-4 py-6 pb-36 md:pb-24'>
         <div className='flex overflow-x-auto pb-4 mb-6 scrollbar-hide'>
           <div className='flex space-x-2'>
             {categories.map((category, index) => (
@@ -252,7 +251,7 @@ const GuestUserDashboard = () => {
                         ...item,
                         quantity: 1,
                         specialInstructions: '',
-                        cartItemId: `${item.id}-${Date.now()}`,
+                        cartItemId: `${item._id || item.id}-${Date.now()}`,
                       })
                     }
                     className='w-full bg-indigo-600 hover:bg-indigo-700 text-white py-1 px-2 rounded-md text-xs sm:text-sm'
@@ -307,7 +306,7 @@ const GuestUserDashboard = () => {
                                 (typeof item?.image === "string"
                                   ? item.image
                                   : item?.image?.url) ||
-                                'https://via.placeholder.com/64'
+                                '/logo-mark.svg'
                               }
                               alt={item.name}
                               className='h-full w-full object-cover'
@@ -319,7 +318,7 @@ const GuestUserDashboard = () => {
                                 {item.name}
                               </h3>
                               <p className='text-sm font-bold text-gray-800 ml-4'>
-                                ${(item.price * item.quantity).toFixed(2)}
+                                Rs. {(item.price * item.quantity).toFixed(2)}
                               </p>
                             </div>
                             <div className='mt-1 flex justify-between'>
@@ -375,7 +374,7 @@ const GuestUserDashboard = () => {
                     )}
                     <div className='flex justify-between text-base md:text-lg font-bold mb-4'>
                       <span>Subtotal:</span>
-                      <span>${subtotal.toFixed(2)}</span>
+                      <span>Rs. {subtotal.toFixed(2)}</span>
                     </div>
                     <button
                       onClick={handleProceedToCheckout}
@@ -390,6 +389,12 @@ const GuestUserDashboard = () => {
           </div>
         </div>
       )}
+
+      <CheckoutBar
+        totalItems={totalItems}
+        subtotal={subtotal}
+        onCheckout={handleProceedToCheckout}
+      />
 
       <div className='md:hidden fixed bottom-0 left-0 right-0 bg-white shadow-lg border-t border-gray-200 z-10'>
         <div className='flex justify-around items-center py-3'>

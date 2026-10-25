@@ -16,7 +16,6 @@ const AdminPOSPage = () => {
     removeFromCart,
     increaseQty,
     decreaseQty,
-    clearCart,
     subtotal,
     discount,
     setDiscount,
@@ -60,15 +59,12 @@ const AdminPOSPage = () => {
 
   // Override addToCart to ensure unique item IDs
   const addToCart = (item) => {
-    const itemWithId = {
+    const menuId = item._id || item.id;
+    originalAddToCart({
       ...item,
-      id: item.id || `${item.name}-${Date.now()}`,
-    };
-    originalAddToCart(itemWithId);
-  };
-
-  const handlePrintBill = () => {
-    clearCart();
+      id: menuId,
+      _id: menuId,
+    });
   };
 
   return (
@@ -77,44 +73,65 @@ const AdminPOSPage = () => {
         <h1 className='text-2xl font-bold mb-4'>Menu</h1>
 
         {/* 🔍 Filter and Search */}
-        <div className='flex gap-2 mb-4'>
-          <select
-            value={activeCategory}
-            onChange={(e) => setActiveCategory(e.target.value)}
-            className='border px-2 py-1 rounded'
-          >
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
-              </option>
-            ))}
-          </select>
-
-          <input
-            type='text'
-            placeholder='Search items...'
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            className='border px-2 py-1 flex-1 rounded'
-          />
+        <div className='flex flex-col sm:flex-row gap-3 mb-4'>
+          <div>
+            <label className='block text-sm font-medium text-gray-700 mb-1'>
+              Category
+            </label>
+            <select
+              value={activeCategory}
+              onChange={(e) => setActiveCategory(e.target.value)}
+              className='w-full sm:w-48 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none'
+            >
+              {categories.map((cat) => (
+                <option key={cat} value={cat}>
+                  {cat}
+                </option>
+              ))}
+            </select>
+          </div>
+          <div className='flex-1'>
+            <label className='block text-sm font-medium text-gray-700 mb-1'>
+              Search
+            </label>
+            <input
+              type='text'
+              placeholder='Search items...'
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className='w-full p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none'
+            />
+          </div>
         </div>
 
         <div className='mb-4'>
-          <label className='block text-sm font-medium mb-2'>
-            Select Table:
+          <label className='block text-sm font-medium text-gray-700 mb-1'>
+            Select table
           </label>
           <select
             value={selectedTable}
             onChange={(e) => setSelectedTable(e.target.value)}
-            className='border px-3 py-2 rounded w-full max-w-xs'
+            className='w-full max-w-xs p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none'
           >
             <option value=''>No Table (Takeaway)</option>
-            {tables.map((table) => (
-              <option key={table._id} value={table.tableNumber}>
-                Table {table.tableNumber}{' '}
-                {table.isBooked ? '(Booked - Add Items)' : '(Available)'}
-              </option>
-            ))}
+            <optgroup label='Available to seat'>
+              {tables
+                .filter((table) => !table.isBooked)
+                .map((table) => (
+                  <option key={table._id} value={table.tableNumber}>
+                    Table {table.tableNumber}
+                  </option>
+                ))}
+            </optgroup>
+            <optgroup label='Occupied (add items)'>
+              {tables
+                .filter((table) => table.isBooked)
+                .map((table) => (
+                  <option key={table._id} value={table.tableNumber}>
+                    Table {table.tableNumber}
+                  </option>
+                ))}
+            </optgroup>
           </select>
         </div>
 
@@ -129,12 +146,12 @@ const AdminPOSPage = () => {
           ) : (
             filteredItems.map((item) => (
               <button
-                key={item.id || item.name}
+                key={item._id || item.id || item.name}
                 onClick={() => addToCart(item)}
                 className='p-4 border rounded hover:bg-gray-100 text-left flex items-center gap-3'
               >
                 <img
-                  src={item?.image?.url || 'https://via.placeholder.com/64'}
+                  src={item?.image?.url || '/logo-mark.svg'}
                   alt={item?.name}
                   className='w-16 h-16 object-cover rounded'
                 />
@@ -154,7 +171,6 @@ const AdminPOSPage = () => {
         onIncrease={increaseQty}
         onDecrease={decreaseQty}
         onRemove={removeFromCart}
-        onPrintBill={handlePrintBill}
         subtotal={subtotal}
         discount={discount}
         setDiscount={setDiscount}

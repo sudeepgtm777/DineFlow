@@ -11,6 +11,7 @@ import {
   BarChart3,
   Wallet,
   Settings,
+  Calendar,
 } from "lucide-react";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
@@ -62,6 +63,12 @@ const Sidebar = ({ isOpen = false, onClose }: any) => {
           <NavLink to="/admin/room-stats" className={linkClass}>
             <BedDouble className="w-5 h-5" />
             <span>Room Manager</span>
+          </NavLink>
+        </li>
+        <li>
+          <NavLink to="/admin/reservations" className={linkClass}>
+            <Calendar className="w-5 h-5" />
+            <span>Reservations</span>
           </NavLink>
         </li>
         <li>

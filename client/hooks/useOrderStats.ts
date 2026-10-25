@@ -10,7 +10,9 @@ const useOrderStats = () => {
   const fetchOrderStats = useCallback(async () => {
     setLoading(true);
     try {
-      const response = await api.get(`${endpoints.order}/orders`);
+      const response = await api.get(
+        `${endpoints.order}/orders/filter?filter=daily`,
+      );
       setTotalOrders(response.data.totalOrders || 0);
       setError(null);
     } catch (err) {

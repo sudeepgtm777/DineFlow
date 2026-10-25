@@ -16,7 +16,7 @@ const Login = () => {
         password: "",
     });
 
-    const { loading, user } = useAppSelector((store) => store.auth);
+    const { loading, user, hydrated } = useAppSelector((store) => store.auth);
     const navigate = useNavigate();
     const dispatch = useAppDispatch();
 
@@ -40,11 +40,12 @@ const Login = () => {
                 dispatch(setUser(res.data.user));
                 localStorage.removeItem("user");
 
-                // Redirect based on user role
                 if (res.data.user.role === "admin") {
                     navigate("/admin/dashboard");
                 } else if (res.data.user.role === "cook") {
                     navigate("/cook");
+                } else if (res.data.user.role === "pending") {
+                    navigate("/pending");
                 } else {
                     navigate("/");
                 }
@@ -52,25 +53,34 @@ const Login = () => {
                 toast.success(res.data.message);
             }
         } catch (error) {
-            console.error("Login Error:", error);
-            toast.error(error.response?.data?.message || "Something went wrong!");
+            const status = error.response?.status;
+            const apiMessage = error.response?.data?.message;
+            toast.error(
+                status === 429
+                    ? apiMessage || "Too many attempts. Try again in a minute."
+                    : apiMessage || "Something went wrong!",
+            );
         } finally {
             dispatch(setLoading(false));
         }
     };
 
-    // Redirect to respective dashboard if already logged in
     useEffect(() => {
-        if (user) {
-            if (user.role === "admin") {
-                navigate("/admin/dashboard");
-            } else if (user.role === "cook") {
-                navigate("/cook");
-            } else {
-                navigate("/");
-            }
+        if (!hydrated || !user) return;
+        if (user.role === "admin") {
+            navigate("/admin/dashboard");
+        } else if (user.role === "cook") {
+            navigate("/cook");
         }
-    }, [user, navigate]);
+    }, [user, hydrated, navigate]);
+
+    if (!hydrated) {
+        return (
+            <div className="min-h-screen flex items-center justify-center bg-gray-100">
+                <Loader2 className="h-8 w-8 animate-spin text-blue-600" />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">

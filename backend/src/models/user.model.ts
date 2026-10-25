@@ -29,8 +29,8 @@ const userSchema = new mongoose.Schema(
     },
     role: {
       type: String,
-      enum: ['admin', 'cook'],
-      default: 'cook',
+      enum: ['admin', 'cook', 'pending'],
+      default: 'pending',
     },
     profile: {
       bio: { type: String },

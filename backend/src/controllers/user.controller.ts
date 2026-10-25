@@ -38,22 +38,19 @@ export const register = async (req, res) => {
       }
     }
 
-    // Force role to be 'cook' - prevent admin signup
-    const userRole =
-      req.body.role === 'admin' ? 'cook' : req.body.role || 'cook';
-
     await User.create({
       fullname: req.body.fullname,
       email: req.body.email,
       phoneNumber: req.body.phoneNumber,
       password: hashedPassword,
-      role: userRole,
+      role: 'pending',
       profile: { profilePhoto },
     });
 
-    return res
-      .status(201)
-      .json({ message: 'Account created successfully', success: true });
+    return res.status(201).json({
+      message: 'You have requested to be Cook. Check later.',
+      success: true,
+    });
   } catch (error) {
     console.error('Error in register function:', error);
     if (error.name === 'ValidationError') {
@@ -220,34 +217,41 @@ export const updateProfile = async (req, res) => {
 
 export const checkLoginStatus = async (req, res) => {
   try {
-    if (!req.id) {
-      // Change from req.user to req.id
-      return res.status(401).json({
-        message: 'User not logged in',
-        success: false,
-      });
+    const bearer = req.headers.authorization?.startsWith('Bearer ')
+      ? req.headers.authorization.slice(7)
+      : null;
+    const token = req.cookies?.token || bearer;
+    if (!token) {
+      return res.status(200).json({ success: false, user: null });
     }
 
-    const user = await User.findById(req.id).select('-password'); // Exclude password for security
+    let userId: string | undefined;
+    try {
+      const decode = jwt.verify(token, process.env.JWT_SECRET) as jwt.JwtPayload & {
+        userId?: string;
+      };
+      userId = decode?.userId;
+    } catch {
+      return res.status(200).json({ success: false, user: null });
+    }
 
+    if (!userId) {
+      return res.status(200).json({ success: false, user: null });
+    }
+
+    const user = await User.findById(userId).select('-password');
     if (!user) {
-      return res.status(401).json({
-        message: 'User not found',
-        success: false,
-      });
+      return res.status(200).json({ success: false, user: null });
     }
 
     return res.status(200).json({
       message: 'User is logged in',
-      user, // Send user data
+      user,
       success: true,
     });
   } catch (error) {
     console.error(error);
-    return res.status(500).json({
-      message: 'Internal server error',
-      success: false,
-    });
+    return res.status(200).json({ success: false, user: null });
   }
 };
 
@@ -271,6 +275,12 @@ export const promoteToAdmin = async (req, res) => {
         .status(404)
         .json({ message: 'User not found', success: false });
     }
+    if (user.role !== 'cook') {
+      return res.status(400).json({
+        message: 'Only approved cooks can be promoted to admin',
+        success: false,
+      });
+    }
     user.role = 'admin';
     await user.save();
     return res.status(200).json({
@@ -287,16 +297,90 @@ export const promoteToAdmin = async (req, res) => {
 export const demoteFromAdmin = async (req, res) => {
   try {
     const { userId } = req.params;
+    if (req.id && String(req.id) === String(userId)) {
+      return res.status(400).json({
+        message: 'You cannot demote yourself',
+        success: false,
+      });
+    }
     const user = await User.findById(userId);
     if (!user) {
       return res
         .status(404)
         .json({ message: 'User not found', success: false });
     }
+    if (user.role !== 'admin') {
+      return res.status(400).json({
+        message: 'User is not an admin',
+        success: false,
+      });
+    }
+    const adminCount = await User.countDocuments({ role: 'admin' });
+    if (adminCount <= 1) {
+      return res.status(400).json({
+        message: 'Cannot demote the last admin',
+        success: false,
+      });
+    }
     user.role = 'cook';
     await user.save();
     return res.status(200).json({
       message: `${user.fullname} demoted to cook successfully`,
+      success: true,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: 'Internal server error', success: false });
+  }
+};
+
+export const approveCook = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: 'User not found', success: false });
+    }
+    if (user.role !== 'pending') {
+      return res.status(400).json({
+        message: 'User does not have a pending cook request',
+        success: false,
+      });
+    }
+    user.role = 'cook';
+    await user.save();
+    return res.status(200).json({
+      message: `${user.fullname} approved as cook`,
+      success: true,
+    });
+  } catch (error) {
+    return res
+      .status(500)
+      .json({ message: 'Internal server error', success: false });
+  }
+};
+
+export const rejectCook = async (req, res) => {
+  try {
+    const { userId } = req.params;
+    const user = await User.findById(userId);
+    if (!user) {
+      return res
+        .status(404)
+        .json({ message: 'User not found', success: false });
+    }
+    if (user.role !== 'pending') {
+      return res.status(400).json({
+        message: 'User does not have a pending cook request',
+        success: false,
+      });
+    }
+    await User.findByIdAndDelete(userId);
+    return res.status(200).json({
+      message: `${user.fullname}'s cook request was rejected`,
       success: true,
     });
   } catch (error) {

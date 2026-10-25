@@ -4,6 +4,14 @@ export const bookRoomAsCustomer = async (req, res) => {
   try {
     const { roomNumber } = req.params;
     const { customerName, contactNumber } = req.body;
+    if (!String(customerName || '').trim()) {
+      return res.status(400).json({ message: 'Customer name is required.' });
+    }
+    if (!/^9\d{9}$/.test(String(contactNumber || ''))) {
+      return res.status(400).json({
+        message: 'Contact number must be 10 digits and start with 9.',
+      });
+    }
 
     const room = await Room.findOne({ roomNumber });
     if (!room) return res.status(404).json({ message: 'Room not found.' });
@@ -21,7 +29,7 @@ export const bookRoomAsCustomer = async (req, res) => {
       room: room._id,
       customerName,
       contactNumber,
-      status: 'checked-in',
+      status: 'booked',
     });
 
     await booking.save();
@@ -55,7 +63,26 @@ export const updateBookingStatus = async (req, res) => {
       return res.status(404).json({ message: 'Booking not found.' });
 
     booking.status = status;
+    if (status === 'checked-in' && !booking.checkInDate) {
+      booking.checkInDate = new Date();
+    }
+    if (['checked-out', 'cancelled'].includes(status)) {
+      booking.checkOutDate = new Date();
+    }
     await booking.save();
+
+    if (['checked-out', 'cancelled'].includes(status) && booking.room) {
+      await Room.findByIdAndUpdate(booking.room, {
+        isBooked: false,
+        checkOutDate: new Date(),
+        currentOrderId: null,
+      });
+    } else if (['booked', 'checked-in'].includes(status) && booking.room) {
+      await Room.findByIdAndUpdate(booking.room, {
+        isBooked: true,
+        checkInDate: booking.checkInDate || new Date(),
+      });
+    }
 
     res
       .status(200)

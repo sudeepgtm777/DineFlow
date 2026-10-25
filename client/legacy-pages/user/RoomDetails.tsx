@@ -28,8 +28,8 @@ const RoomDetails = () => {
     
     setLoading(true);
     try {
-      const res = await api.post(`${endpoints.booking}/${roomNumber}`, booking);
-      setRoom(res.data.room);
+      await api.post(`${endpoints.booking}/${roomNumber}`, booking);
+      setRoom((prev) => (prev ? { ...prev, isBooked: true } : prev));
       toast.success("Room booked successfully!");
     } catch (err) {
       const errorMsg = err.response?.data?.message || "Booking failed.";
