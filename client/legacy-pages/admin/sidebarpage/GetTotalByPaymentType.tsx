@@ -42,6 +42,7 @@ const GetTotalByPaymentType = () => {
         totalOnline: data.totalOnline || 0,
         totalCredit: data.totalCredit || 0,
       });
+      setError("");
     } catch {
       setError("Failed to fetch payment totals");
     }
@@ -103,7 +104,18 @@ const GetTotalByPaymentType = () => {
     const filtered =
       activeFilter === "all"
         ? bills
-        : bills.filter((b) => b.paymentMethod === activeFilter);
+        : bills.filter((bill) => {
+            if (activeFilter === "cash") {
+              return (bill.cash || 0) > 0 || bill.paymentMethod === "cash";
+            }
+            if (activeFilter === "online") {
+              return (bill.online || 0) > 0 || bill.paymentMethod === "online";
+            }
+            if (activeFilter === "credit") {
+              return (bill.credit || 0) > 0 || bill.paymentMethod === "credit";
+            }
+            return bill.paymentMethod === activeFilter;
+          });
     setFilteredBills(filtered);
   }, [bills, activeFilter]);
 

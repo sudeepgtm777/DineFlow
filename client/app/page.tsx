@@ -1,7 +1,12 @@
 "use client";
 
-import UserDashboard from "@/legacy-pages/user/UserDashboard";
+import { Suspense } from "react";
+import GuestUserDashboard from "@/legacy-pages/user/GuestUserDashboard";
 
 export default function Page() {
-  return <UserDashboard />;
+  return (
+    <Suspense fallback={null}>
+      <GuestUserDashboard />
+    </Suspense>
+  );
 }

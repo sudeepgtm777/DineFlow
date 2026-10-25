@@ -27,9 +27,12 @@ const useSignup = () => {
             });
 
             if (res.data.success) {
-                navigate("/login");
-                toast.success(res.data.message);
+                toast.success(
+                    res.data.message ||
+                        "You have requested to be Cook. Check later.",
+                );
                 resetForm();
+                navigate("/pending");
             }
         } catch (error) {
             toast.error(error.response?.data?.message || "Something went wrong");

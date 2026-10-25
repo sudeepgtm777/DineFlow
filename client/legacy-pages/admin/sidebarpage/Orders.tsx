@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import api from '@/lib/axios';
 import { endpoints } from "@/lib/api/endpoints";
+import BillReceipt from '@/components/admin/BillReceipt';
 import { toast } from 'react-toastify';
 
 const Orders = () => {
@@ -17,31 +18,41 @@ const Orders = () => {
   const [totalPages, setTotalPages] = useState(1);
   const billRef = useRef(null);
 
+  const dateFilterMap = {
+    day: 'daily',
+    week: 'weekly',
+    month: 'monthly',
+    year: 'yearly',
+  };
+
   const fetchOrders = async () => {
     try {
       setLoading(true);
-      const { data } = await api.get(
-        `${endpoints.order}/orders/filter?page=${page}&limit=${limit}`,
-      );
+      const backendFilter = dateFilterMap[dateFilter];
+      const url = backendFilter
+        ? `${endpoints.order}/orders/filter?filter=${backendFilter}`
+        : `${endpoints.order}/orders?page=${page}&limit=${limit}`;
+      const { data } = await api.get(url);
       const sortedOrders = Array.isArray(data.orders)
         ? [...data.orders].sort(
             (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
           )
         : [];
       setOrders(sortedOrders);
-      setTotalPages(data.totalPages || 1);
-      setLoading(false);
+      setTotalPages(backendFilter ? 1 : data.totalPages || 1);
     } catch (error) {
       console.error('Failed to fetch orders:', error);
+      toast.error('Failed to fetch orders');
       setOrders([]);
       setTotalPages(1);
+    } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
     fetchOrders();
-  }, [page]);
+  }, [page, dateFilter]);
 
   const handleChangeStatus = async (orderId, newStatus) => {
     try {
@@ -79,53 +90,49 @@ const Orders = () => {
     }
   };
 
+  const ordersForDineInSession = (order) =>
+    orders.filter(
+      (o) =>
+        o.orderType === 'dine-in' &&
+        String(o.tableNumber) === String(order.tableNumber) &&
+        o.bookingSessionId &&
+        o.bookingSessionId === order.bookingSessionId,
+    );
+
   const handleGenerateBill = async (order) => {
     try {
       if (order.orderType === 'dine-in' && order.tableNumber) {
-        // For dine-in orders, get all orders from the same booking session
-        const sessionOrders = orders.filter(
-          (o) =>
-            o.orderType === 'dine-in' &&
-            o.tableNumber === order.tableNumber &&
-            o.bookingSessionId === order.bookingSessionId,
-        );
+        try {
+          const { data } = await api.get(
+            `${endpoints.order}/table-bill/${order.tableNumber}`,
+          );
+          const tableOrders = Array.isArray(data.orders) ? data.orders : [];
+          const isSameSession = tableOrders.some(
+            (ticket) => ticket._id === order._id,
+          );
+          if (isSameSession && tableOrders.length > 0) {
+            setBillData({
+              tableNumber: order.tableNumber,
+              orders: tableOrders,
+            });
+            return;
+          }
+        } catch (err) {
+          console.error('Falling back to listed session orders:', err);
+        }
 
-        const totalAmount = sessionOrders.reduce(
-          (sum, o) => sum + (o.subtotal || 0),
-          0,
-        );
-
+        const sessionOrders = ordersForDineInSession(order);
         setBillData({
-          customer: order.customerName,
-          table: order.tableNumber,
-          orderType: order.orderType,
-          orders: sessionOrders,
-          total: totalAmount.toFixed(2),
-          sessionId: order.bookingSessionId,
+          tableNumber: order.tableNumber,
+          orders: sessionOrders.length > 0 ? sessionOrders : [order],
         });
-      } else {
-        // For takeaway/delivery orders, group by customer
-        const customerOrders = orders.filter(
-          (o) =>
-            o.orderType === order.orderType &&
-            o.customerName === order.customerName &&
-            new Date(o.createdAt).toDateString() ===
-              new Date(order.createdAt).toDateString(),
-        );
-
-        const totalAmount = customerOrders.reduce(
-          (sum, o) => sum + (o.subtotal || 0),
-          0,
-        );
-
-        setBillData({
-          customer: order.customerName,
-          table: null,
-          orderType: order.orderType,
-          orders: customerOrders,
-          total: totalAmount.toFixed(2),
-        });
+        return;
       }
+
+      setBillData({
+        tableNumber: null,
+        orders: [order],
+      });
     } catch (error) {
       console.error('Error generating bill:', error);
       toast.error('Failed to generate bill');
@@ -162,19 +169,22 @@ const Orders = () => {
   };
 
   const filteredOrders = (orders || [])
-    .filter(
-      (order) =>
-        order.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        order.orderType.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (order.tableNumber &&
-          order.tableNumber.toString().includes(searchTerm)),
-    )
+    .filter((order) => {
+      const term = searchTerm.toLowerCase();
+      return (
+        (order.customerName || '').toLowerCase().includes(term) ||
+        (order.orderType || '').toLowerCase().includes(term) ||
+        (order.tableNumber && order.tableNumber.toString().includes(searchTerm))
+      );
+    })
     .filter(
       (order) =>
         orderTypeFilter === 'all' || order.orderType === orderTypeFilter,
     )
     .filter((order) => statusFilter === 'all' || order.status === statusFilter)
-    .filter((order) => filterByDate(order.createdAt));
+    .filter((order) =>
+      dateFilterMap[dateFilter] ? true : filterByDate(order.createdAt),
+    );
 
   const getStatusClass = (status) => {
     switch (status) {
@@ -203,7 +213,7 @@ const Orders = () => {
 
   return (
     <div className='p-6 min-h-screen bg-gray-100'>
-      <div className='max-w-7xl mx-auto bg-white p-6 rounded-xl shadow-md'>
+      <div className={`max-w-7xl mx-auto bg-white p-6 rounded-xl shadow-md ${billData ? 'no-print' : ''}`}>
         <h1 className='text-3xl font-bold mb-6 text-center text-gray-800'>
           Order Management
         </h1>
@@ -229,7 +239,10 @@ const Orders = () => {
           <select
             className='w-full p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500'
             value={dateFilter}
-            onChange={(e) => setDateFilter(e.target.value)}
+            onChange={(e) => {
+              setDateFilter(e.target.value);
+              setPage(1);
+            }}
           >
             <option value='all'>All Time</option>
             <option value='day'>Today</option>
@@ -293,7 +306,7 @@ const Orders = () => {
                 <div className='mb-3'>
                   <h4 className='font-medium mb-2'>Items:</h4>
                   <div className='space-y-1'>
-                    {order.items.map((item, index) => (
+                    {(order.items || []).map((item, index) => (
                       <div key={index} className='flex justify-between text-sm'>
                         <span>
                           {item.name} x {item.quantity}
@@ -307,7 +320,7 @@ const Orders = () => {
                   <div className='border-t pt-2 mt-2'>
                     <div className='flex justify-between font-semibold'>
                       <span>Total:</span>
-                      <span>Rs. {order.subtotal.toFixed(2)}</span>
+                      <span>Rs. {(order.subtotal || 0).toFixed(2)}</span>
                     </div>
                   </div>
                 </div>
@@ -371,58 +384,21 @@ const Orders = () => {
         </div>
       </div>
 
-      {/* Bill Modal */}
       {billData && (
-        <div className='fixed inset-0 bg-black/50 flex items-center justify-center z-50'>
-          <div className='bg-white p-6 rounded-lg max-w-md w-full mx-4'>
+        <div className='fixed inset-0 bg-black/50 flex items-start justify-center z-50 overflow-y-auto py-8 print:static print:bg-transparent print:inset-auto print:p-0'>
+          <div className='bg-white rounded-lg max-w-2xl w-full mx-4 my-4 print:shadow-none print:mx-0 print:my-0 print:rounded-none'>
             <div ref={billRef} id='bill-content'>
-              <h2 className='text-xl font-bold mb-4 text-center'>Bill</h2>
-              <div className='mb-4'>
-                <p>
-                  <strong>Customer:</strong> {billData.customer}
-                </p>
-                {billData.table && (
-                  <p>
-                    <strong>Table:</strong> {billData.table}
-                  </p>
-                )}
-                <p>
-                  <strong>Type:</strong> {billData.orderType}
-                </p>
-              </div>
-              <div className='space-y-2 mb-4'>
-                {billData.orders.map((order, index) => (
-                  <div key={index}>
-                    <h4 className='font-medium'>Order #{index + 1}</h4>
-                    {order.items.map((item, itemIndex) => (
-                      <div
-                        key={itemIndex}
-                        className='flex justify-between text-sm'
-                      >
-                        <span>
-                          {item.name} x {item.quantity}
-                        </span>
-                        <span>
-                          Rs. {(item.price * item.quantity).toFixed(2)}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                ))}
-              </div>
-              <div className='border-t pt-2'>
-                <div className='flex justify-between font-bold'>
-                  <span>Total:</span>
-                  <span>Rs. {billData.total}</span>
-                </div>
-              </div>
+              <BillReceipt
+                orders={billData.orders}
+                tableNumber={billData.tableNumber}
+              />
             </div>
-            <div className='flex gap-2 mt-4 no-print'>
+            <div className='flex gap-2 p-4 no-print'>
               <button
                 onClick={handlePrint}
-                className='flex-1 bg-blue-500 text-white py-2 rounded hover:bg-blue-600'
+                className='flex-1 bg-indigo-600 text-white py-2 rounded hover:bg-indigo-700'
               >
-                Print
+                Print Bill
               </button>
               <button
                 onClick={() => setBillData(null)}

@@ -2,22 +2,13 @@ import { useState, useEffect } from "react";
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
 
-const staticCategories = [
-  "Pizza",
-  "Burgers",
-  "Pasta",
-  "Salads",
-  "Wings",
-  "Vegetarian",
-];
-
 export const useMenu = () => {
   const [menuItems, setMenuItems] = useState<any[]>([]);
   const [activeCategory, setActiveCategory] = useState("All");
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<any>(null);
-  const [categories, setCategories] = useState(staticCategories);
+  const [categories, setCategories] = useState(["All"]);
 
   const fetchMenuItems = async () => {
     try {
@@ -32,7 +23,7 @@ export const useMenu = () => {
         new Set(data.map((item) => item.category))
       );
 
-      const allCategories = ["All", ...new Set([...staticCategories, ...dynamicCategories])];
+      const allCategories = ["All", ...dynamicCategories.filter(Boolean)];
 
       setCategories(allCategories);
       setMenuItems(data);

@@ -1,31 +1,215 @@
-import React, { useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
+import {
+  DndContext,
+  MouseSensor,
+  TouchSensor,
+  closestCenter,
+  type DragEndEvent,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core';
+import {
+  SortableContext,
+  arrayMove,
+  rectSortingStrategy,
+  useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import { useTables } from '@/hooks/useTables';
-import { useBill } from '@/hooks/useBill';
-import { ToastContainer, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import { useNavigate } from '@/lib/router';
 import api from '@/lib/axios';
 import 'react-toastify/dist/ReactToastify.css';
 import { endpoints } from "@/lib/api/endpoints";
-import { MoreVertical } from 'lucide-react';
+import { GripVertical, MoreVertical } from 'lucide-react';
+
+const SortableTableCard = ({
+  table,
+  tableLoading,
+  dropdownOpenId,
+  setDropdownOpenId,
+  onToggleBooking,
+  onDeleteTable,
+  onViewOrders,
+  onAddItems,
+  onRelease,
+}: {
+  table: any;
+  tableLoading: boolean;
+  dropdownOpenId: any;
+  setDropdownOpenId: React.Dispatch<React.SetStateAction<any>>;
+  onToggleBooking: (tableId: string, currentStatus: boolean) => void;
+  onDeleteTable: (tableId: string) => void;
+  onViewOrders: (tableNumber: string) => void;
+  onAddItems: (tableNumber: string) => void;
+  onRelease: (tableNumber: string) => void;
+}) => {
+  const tableId = String(table._id);
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: tableId });
+
+  const isMenuOpen = dropdownOpenId === table._id;
+  const style: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging || isMenuOpen ? 30 : undefined,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`relative overflow-visible p-4 rounded-xl shadow-md border ${
+        table?.isBooked
+          ? 'bg-red-100 border-red-400'
+          : 'bg-green-100 border-green-400'
+      } ${isDragging ? 'shadow-lg ring-2 ring-indigo-300' : ''}`}
+    >
+      <div className='absolute top-2 right-2 flex items-center gap-1'>
+        <button
+          type='button'
+          className='inline-flex items-center justify-center rounded-md p-1 text-gray-500 hover:bg-white/70 hover:text-gray-800 cursor-grab'
+          {...attributes}
+          {...listeners}
+        >
+          <GripVertical className='w-5 h-5' />
+          <span className='sr-only'>Drag table to reorder</span>
+        </button>
+        <div className='relative' data-card-menu>
+          <button
+            type='button'
+            onClick={() =>
+              setDropdownOpenId((prevId) =>
+                prevId === table._id ? null : table._id,
+              )
+            }
+          >
+            <MoreVertical className='w-5 h-5 text-gray-700' />
+          </button>
+
+          {isMenuOpen && (
+            <div className='absolute right-0 top-full mt-1 bg-white border rounded-lg shadow-lg z-30 w-44'>
+              <button
+                type='button'
+                onClick={() => onToggleBooking(table._id, table.isBooked)}
+                className='block w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-100 text-left'
+              >
+                {table.isBooked ? 'Mark as Available' : 'Mark as Occupied'}
+              </button>
+              <button
+                type='button'
+                onClick={() => onDeleteTable(table._id)}
+                className='block w-full px-4 py-2 text-sm text-red-600 hover:bg-red-100 text-left'
+              >
+                Delete Table
+              </button>
+            </div>
+          )}
+        </div>
+      </div>
+
+      <h3 className='text-xl font-semibold mb-2 pr-16'>
+        Table {String(table?.tableNumber)}
+      </h3>
+
+      {table?.qrImage?.url && (
+        <img
+          src={table.qrImage.url}
+          alt={`QR for Table ${table.tableNumber}`}
+          className='w-24 h-24 object-contain mb-2 border'
+        />
+      )}
+
+      <p className='mb-1'>
+        Status:{' '}
+        <span className={table?.isBooked ? 'text-red-600' : 'text-green-600'}>
+          {table?.isBooked ? 'Occupied' : 'Available'}
+        </span>
+      </p>
+
+      {table?.isBooked && (
+        <div className='flex flex-wrap gap-2'>
+          <button
+            type='button'
+            onClick={() => onViewOrders(table?.tableNumber)}
+            className='bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700'
+          >
+            View Orders
+          </button>
+
+          <button
+            type='button'
+            onClick={() => onAddItems(table?.tableNumber)}
+            className='bg-orange-600 text-white px-3 py-1 rounded hover:bg-orange-700'
+          >
+            Add Items
+          </button>
+
+          <button
+            type='button'
+            onClick={() => onRelease(table?.tableNumber)}
+            disabled={tableLoading}
+            className='bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50'
+          >
+            Release
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
 
 const TableManager = () => {
   const {
     tables,
+    setTables,
     loading: tableLoading,
     releaseTable,
     fetchTables,
+    reorderTables,
   } = useTables();
 
-  const { billData, showModal, fetchBill, setShowModal } = useBill();
   const [newTableNumber, setNewTableNumber] = useState('');
   const [creatingTable, setCreatingTable] = useState(false);
-  const [dropdownOpenId, setDropdownOpenId] = useState<any>(null); // Track dropdown toggle
+  const [dropdownOpenId, setDropdownOpenId] = useState<any>(null);
   const navigate = useNavigate();
 
-  const handlePrint = () => window.print();
+  useEffect(() => {
+    if (!dropdownOpenId) return;
+
+    const closeIfOutside = (event: Event) => {
+      const target = event.target as HTMLElement | null;
+      if (target?.closest('[data-card-menu]')) return;
+      setDropdownOpenId(null);
+    };
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setDropdownOpenId(null);
+    };
+
+    document.addEventListener('pointerdown', closeIfOutside);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeIfOutside);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [dropdownOpenId]);
+
+  const sensors = useSensors(
+    useSensor(MouseSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: { distance: 5 },
+    }),
+  );
 
   const handleViewOrders = (tableNumber) => {
-    fetchBill(tableNumber);
     navigate(`/admin/orders/${tableNumber}`);
   };
 
@@ -54,6 +238,7 @@ const TableManager = () => {
   };
 
   const handleToggleBooking = async (tableId, currentStatus) => {
+    setDropdownOpenId(null);
     try {
       await api.put(
         `${endpoints.table}/toggle-booking/${tableId}`,
@@ -73,6 +258,7 @@ const TableManager = () => {
   };
 
   const handleDeleteTable = async (tableId) => {
+    setDropdownOpenId(null);
     const confirmed = window.confirm(
       'Are you sure you want to delete this table?',
     );
@@ -90,180 +276,92 @@ const TableManager = () => {
     }
   };
 
+  const handleDragEnd = useCallback(
+    (event: DragEndEvent) => {
+      const { active, over } = event;
+      if (!over || active.id === over.id) return;
+      const oldIndex = tables.findIndex(
+        (table) => String(table._id) === String(active.id),
+      );
+      const newIndex = tables.findIndex(
+        (table) => String(table._id) === String(over.id),
+      );
+      if (oldIndex < 0 || newIndex < 0) return;
+
+      const previous = tables;
+      const reordered = arrayMove(tables, oldIndex, newIndex);
+      setTables(reordered);
+      void reorderTables(reordered.map((table) => String(table._id)))
+        .then(() => toast.success('Tables reordered'))
+        .catch((err) => {
+          toast.error(
+            err?.response?.data?.message || 'Failed to reorder tables',
+          );
+          setTables(previous);
+          void fetchTables();
+        });
+    },
+    [tables, setTables, reorderTables, fetchTables],
+  );
+
   return (
     <div className='p-6'>
-      <ToastContainer />
       <h2 className='text-2xl font-bold mb-4'>Table Manager</h2>
 
-      {/* Create Table UI */}
-      <div className='mb-6 flex flex-col sm:flex-row items-center gap-3'>
-        <input
-          type='number'
-          inputMode='numeric'
-          min='1'
-          placeholder='Enter Table Number'
-          value={newTableNumber}
-          onChange={(e) => setNewTableNumber(e.target.value)}
-          className='border border-gray-300 rounded px-3 py-2 w-full sm:w-64'
-        />
+      <div className='mb-6 flex flex-col sm:flex-row sm:items-end gap-3'>
+        <div>
+          <label className='block text-gray-700 text-sm font-medium mb-1'>
+            Table number
+          </label>
+          <input
+            type='number'
+            inputMode='numeric'
+            min='1'
+            placeholder='e.g. 14'
+            value={newTableNumber}
+            onChange={(e) => setNewTableNumber(e.target.value)}
+            className='w-full sm:w-64 p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 outline-none'
+          />
+        </div>
         <button
           onClick={handleCreateTable}
           disabled={creatingTable}
-          className='bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 disabled:opacity-50'
+          className='bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 disabled:opacity-50'
         >
           {creatingTable ? 'Creating...' : 'Create Table'}
         </button>
       </div>
 
-      {/* Table List */}
-      <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
-        {(tables || []).map((table) => (
-          <div
-            key={table?._id}
-            className={`relative p-4 rounded-xl shadow-md border ${
-              table?.isBooked
-                ? 'bg-red-100 border-red-400'
-                : 'bg-green-100 border-green-400'
-            }`}
-          >
-            {/* Dropdown menu button */}
-            <div className='absolute top-2 right-2'>
-              <button
-                onClick={() =>
-                  setDropdownOpenId((prevId) =>
-                    prevId === table._id ? null : table._id,
-                  )
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCenter}
+        onDragStart={() => setDropdownOpenId(null)}
+        onDragEnd={handleDragEnd}
+      >
+        <SortableContext
+          items={(tables || []).map((table) => String(table._id))}
+          strategy={rectSortingStrategy}
+        >
+          <div className='grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4'>
+            {(tables || []).map((table) => (
+              <SortableTableCard
+                key={table?._id}
+                table={table}
+                tableLoading={tableLoading}
+                dropdownOpenId={dropdownOpenId}
+                setDropdownOpenId={setDropdownOpenId}
+                onToggleBooking={handleToggleBooking}
+                onDeleteTable={handleDeleteTable}
+                onViewOrders={handleViewOrders}
+                onAddItems={(tableNumber) =>
+                  navigate(`/admin/pos?table=${tableNumber}`)
                 }
-              >
-                <MoreVertical className='w-5 h-5 text-gray-700' />
-              </button>
-
-              {/* Dropdown */}
-              {dropdownOpenId === table._id && (
-                <div className='absolute right-0 mt-2 bg-white border rounded shadow z-10'>
-                  <button
-                    onClick={() =>
-                      handleToggleBooking(table._id, table.isBooked)
-                    }
-                    className='block w-full px-4 py-2 text-sm text-blue-600 hover:bg-blue-100 text-left'
-                  >
-                    {table.isBooked ? 'Mark as Available' : 'Mark as Booked'}
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTable(table._id)}
-                    className='block w-full px-4 py-2 text-sm text-red-600 hover:bg-red-100 text-left'
-                  >
-                    Delete Table
-                  </button>
-                </div>
-              )}
-            </div>
-
-            <h3 className='text-xl font-semibold mb-2'>
-              Table {String(table?.tableNumber)}
-            </h3>
-
-            {table?.qrImage?.url && (
-              <img
-                src={table.qrImage.url}
-                alt={`QR for Table ${table.tableNumber}`}
-                className='w-24 h-24 object-contain mb-2 border'
+                onRelease={releaseTable}
               />
-            )}
-
-            <p className='mb-1'>
-              Status:{' '}
-              <span
-                className={table?.isBooked ? 'text-red-600' : 'text-green-600'}
-              >
-                {table?.isBooked ? 'Booked' : 'Available'}
-              </span>
-            </p>
-
-            {table?.isBooked && (
-              <>
-                <div className='flex flex-wrap gap-2'>
-                  <button
-                    onClick={() => handleViewOrders(table?.tableNumber)}
-                    className='bg-purple-600 text-white px-3 py-1 rounded hover:bg-purple-700'
-                  >
-                    View Orders
-                  </button>
-
-                  <button
-                    onClick={() =>
-                      navigate(`/admin/pos?table=${table?.tableNumber}`)
-                    }
-                    className='bg-orange-600 text-white px-3 py-1 rounded hover:bg-orange-700'
-                  >
-                    Add Items
-                  </button>
-
-                  <button
-                    onClick={() => releaseTable(table?.tableNumber)}
-                    disabled={tableLoading}
-                    className='bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50'
-                  >
-                    Release
-                  </button>
-                </div>
-              </>
-            )}
+            ))}
           </div>
-        ))}
-      </div>
-
-      {/* Bill Modal */}
-      {showModal && billData && (
-        <div className='fixed inset-0 bg-black/40 flex items-center justify-center z-50'>
-          <div className='bg-white w-full max-w-md p-6 rounded-xl shadow-lg print:w-full print:max-w-none print:shadow-none print:bg-white'>
-            <h3 className='text-xl font-bold mb-4'>
-              Bill - Table {String(billData?.tableNumber ?? 'N/A')}
-            </h3>
-            <p className='mb-2'>
-              Customer:{' '}
-              {typeof billData?.customerName === 'string'
-                ? billData.customerName
-                : billData?.customerName?.name || 'N/A'}
-            </p>
-            <table className='w-full mb-4'>
-              <thead>
-                <tr className='border-b'>
-                  <th className='text-left'>Item</th>
-                  <th>Qty</th>
-                  <th>Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {(billData?.items || []).map((item, idx) => (
-                  <tr key={idx} className='border-b'>
-                    <td>{String(item?.name)}</td>
-                    <td className='text-center'>{String(item?.quantity)}</td>
-                    <td className='text-right'>Rs. {String(item?.price)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-            <p className='text-right font-semibold mb-4'>
-              Total: Rs. {billData?.total?.toFixed(2)}
-            </p>
-            <div className='flex justify-end gap-2 print:hidden'>
-              <button
-                onClick={handlePrint}
-                className='bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700'
-              >
-                Print
-              </button>
-              <button
-                onClick={() => setShowModal(false)}
-                className='bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500'
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+        </SortableContext>
+      </DndContext>
     </div>
   );
 };

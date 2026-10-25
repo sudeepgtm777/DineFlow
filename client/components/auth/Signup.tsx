@@ -1,142 +1,142 @@
 "use client";
 
-import React, { useEffect } from 'react';
-import { Link, useNavigate } from '@/lib/router';
-import { useAppSelector } from '@/lib/redux/hooks';
-import { Loader2 } from 'lucide-react';
-import { useFormik } from 'formik';
-import * as Yup from 'yup';
-import useSignup from '@/hooks/auth/useSignup';
-import Logo from '@/components/brand/Logo';
+import React, { useEffect } from "react";
+import { Link, useNavigate } from "@/lib/router";
+import { useAppSelector } from "@/lib/redux/hooks";
+import { Loader2 } from "lucide-react";
+import { useFormik } from "formik";
+import * as Yup from "yup";
+import useSignup from "@/hooks/auth/useSignup";
+import Logo from "@/components/brand/Logo";
+
+const fieldLabels: Record<string, string> = {
+  fullname: "Full name",
+  email: "Email",
+  phoneNumber: "Phone number",
+  password: "Password",
+};
 
 const Signup = () => {
   const { loading, submitHandler } = useSignup();
-  const { user } = useAppSelector((store) => store.auth);
+  const { user, hydrated } = useAppSelector((store) => store.auth);
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (user) navigate('/');
-  }, [user]);
+    if (!hydrated || !user) return;
+    if (user.role === "admin") navigate("/admin/dashboard");
+    else if (user.role === "cook") navigate("/cook");
+    else if (user.role === "pending") navigate("/pending");
+  }, [user, hydrated, navigate]);
 
   const formik = useFormik({
     initialValues: {
-      fullname: '',
-      email: '',
-      phoneNumber: '',
-      password: '',
-      role: '',
+      fullname: "",
+      email: "",
+      phoneNumber: "",
+      password: "",
       image: null,
     },
     validationSchema: Yup.object({
       fullname: Yup.string()
-        .min(3, 'Too short')
-        .max(50, 'Too long')
-        .required('Full name is required'),
+        .min(3, "Too short")
+        .max(50, "Too long")
+        .required("Full name is required"),
       email: Yup.string()
-        .email('Invalid email format')
-        .required('Email is required'),
+        .email("Invalid email format")
+        .required("Email is required"),
       phoneNumber: Yup.string()
-        .matches(/^[0-9]{10}$/, 'Invalid phone number')
-        .required('Phone number is required'),
+        .matches(/^9\d{9}$/, "Phone number must be 10 digits and start with 9")
+        .required("Phone number is required"),
       password: Yup.string()
-        .min(6, 'Password must be at least 6 characters')
-        .required('Password is required'),
-      role: Yup.string().required('Role is required'),
+        .min(8, "Password must be at least 8 characters")
+        .required("Password is required"),
       image: Yup.mixed().nullable(),
     }),
     onSubmit: submitHandler,
   });
 
   return (
-    <div className='flex items-center justify-center max-w-7xl mx-auto'>
-      <form
-        onSubmit={formik.handleSubmit}
-        className='w-1/2 border border-gray-200 rounded-md p-4 my-10'
-      >
-        <div className='flex justify-center mb-4'>
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 px-4">
+      <div className="max-w-md w-full bg-white shadow-lg rounded-lg p-6">
+        <div className="flex justify-center mb-4">
           <Logo href="/" size="lg" />
         </div>
-        <h1 className='font-bold text-xl mb-5'>Sign Up</h1>
+        <h1 className="text-2xl font-semibold text-center text-gray-700 mb-2">
+          Request cook access
+        </h1>
+        <p className="text-sm text-center text-gray-500 mb-6">
+          An admin must approve your request before you can use the kitchen
+          board.
+        </p>
+        <form onSubmit={formik.handleSubmit} className="space-y-4">
+          {["fullname", "email", "phoneNumber", "password"].map((field) => (
+            <div key={field}>
+              <label
+                htmlFor={field}
+                className="block text-sm font-medium text-gray-700"
+              >
+                {fieldLabels[field]}
+              </label>
+              <input
+                type={field === "password" ? "password" : "text"}
+                id={field}
+                name={field}
+                value={formik.values[field]}
+                onChange={formik.handleChange}
+                onBlur={formik.handleBlur}
+                placeholder={`Enter ${fieldLabels[field].toLowerCase()}`}
+                className="mt-1 w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500 focus:outline-none"
+              />
+              {formik.touched[field] && formik.errors[field] && (
+                <p className="mt-1 text-red-500 text-sm">
+                  {String(formik.errors[field])}
+                </p>
+              )}
+            </div>
+          ))}
 
-        {['fullname', 'email', 'phoneNumber', 'password'].map((field) => (
-          <div className='my-2' key={field}>
-            <label htmlFor={field} className='block capitalize'>
-              {field.replace(/([A-Z])/g, ' $1')}
+          <div>
+            <label
+              htmlFor="profile"
+              className="block text-sm font-medium text-gray-700 mb-1"
+            >
+              Profile photo
             </label>
             <input
-              type={field === 'password' ? 'password' : 'text'}
-              id={field}
-              name={field}
-              value={formik.values[field]}
-              onChange={formik.handleChange}
-              onBlur={formik.handleBlur}
-              placeholder={`Enter ${field}`}
-              className='w-full px-3 py-2 border border-gray-300 rounded-md'
-            />
-            {formik.touched[field] && formik.errors[field] && (
-              <p className='text-red-500 text-sm'>{String(formik.errors[field])}</p>
-            )}
-          </div>
-        ))}
-
-        {/* Role Selection - Remove admin option */}
-        <div className='flex items-center justify-between'>
-          <div className='flex items-center gap-4 my-5'>
-            <div className='flex items-center space-x-2'>
-              <input
-                type='radio'
-                id='cook'
-                name='role'
-                value='cook'
-                checked={formik.values.role === 'cook'}
-                onChange={formik.handleChange}
-                className='cursor-pointer'
-              />
-              <label htmlFor='cook' className='capitalize'>
-                Cook
-              </label>
-            </div>
-          </div>
-          {formik.touched.role && formik.errors.role && (
-            <p className='text-red-500 text-sm'>{String(formik.errors.role)}</p>
-          )}
-
-          {/* Profile Image Upload */}
-          <div className='flex items-center gap-2'>
-            <label htmlFor='profile'>Profile</label>
-            <input
-              accept='image/*'
-              type='file'
-              id='profile'
-              name='image'
+              accept="image/*"
+              type="file"
+              id="profile"
+              name="image"
               onChange={(event) =>
-                formik.setFieldValue('image', event.currentTarget.files?.[0])
+                formik.setFieldValue("image", event.currentTarget.files?.[0])
               }
-              className='cursor-pointer'
+              className="w-full text-sm text-gray-600"
             />
           </div>
-        </div>
 
-        {/* Submit Button */}
-        <button
-          type='submit'
-          className='w-full my-4 bg-blue-600 text-white py-2 rounded-md'
-          disabled={formik.isSubmitting || loading}
-        >
-          {formik.isSubmitting || loading ? (
-            <Loader2 className='mr-2 h-4 w-4 animate-spin' />
-          ) : (
-            'Signup'
-          )}
-        </button>
+          <button
+            type="submit"
+            className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2 rounded-lg font-semibold disabled:opacity-50"
+            disabled={formik.isSubmitting || loading}
+          >
+            {formik.isSubmitting || loading ? (
+              <span className="inline-flex items-center justify-center">
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Submitting
+              </span>
+            ) : (
+              "Request to be Cook"
+            )}
+          </button>
+        </form>
 
-        <span className='text-sm'>
-          Already have an account?{' '}
-          <Link to='/login' className='text-blue-600'>
+        <p className="mt-4 text-center text-sm text-gray-600">
+          Already have an account?{" "}
+          <Link to="/login" className="text-blue-600 hover:underline">
             Login
           </Link>
-        </span>
-      </form>
+        </p>
+      </div>
     </div>
   );
 };

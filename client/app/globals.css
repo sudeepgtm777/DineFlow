@@ -4,3 +4,18 @@ html {
   color: #1f2937;
 }
 
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  body {
+    background: white !important;
+  }
+
+  .print-bill {
+    box-shadow: none !important;
+    max-width: 100% !important;
+  }
+}
+

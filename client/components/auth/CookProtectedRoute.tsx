@@ -1,22 +1,21 @@
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAppSelector } from "@/lib/redux/hooks";
 import { useNavigate } from "@/lib/router";
 
 const CookProtectedRoute = ({ children }) => {
-    const { user, loading } = useAppSelector((store) => store.auth);
+    const { user, hydrated } = useAppSelector((store) => store.auth);
     const navigate = useNavigate();
-    const [checkingAuth, setCheckingAuth] = useState(true);
 
     useEffect(() => {
-        if (!loading) {
-            if (!user || user.role !== "cook") {
-                navigate("/login", { replace: true });
-            }
-            setCheckingAuth(false);
+        if (!hydrated) return;
+        if (!user || user.role !== "cook") {
+            navigate(user?.role === "pending" ? "/pending" : "/login", {
+                replace: true,
+            });
         }
-    }, [user, loading, navigate]);
+    }, [user, hydrated, navigate]);
 
-    if (loading || checkingAuth) {
+    if (!hydrated || !user || user.role !== "cook") {
         return <div>Loading...</div>;
     }
 
