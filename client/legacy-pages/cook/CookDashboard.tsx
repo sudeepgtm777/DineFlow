@@ -2,7 +2,8 @@ import { useNavigate } from '@/lib/router';
 import { useAppDispatch } from '@/lib/redux/hooks';
 import { setUser } from '@/lib/redux/authSlice';
 import api from '@/lib/axios';
-import { endpoints } from "@/lib/api/endpoints"; // Add endpoints.order
+import { backendOrigin } from "@/lib/api/base";
+import { endpoints } from "@/lib/api/endpoints";
 import { toast } from 'react-toastify';
 import React, { useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
@@ -45,16 +46,15 @@ const CookDashboard = () => {
 
     fetchOrders();
     const interval = setInterval(fetchOrders, 10000);
-    const apiBase =
-      process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4000/api/v1';
-    const socketUrl = apiBase.replace(/\/api\/v1\/?$/, '');
-    const socket = io(socketUrl, { withCredentials: true });
-    socket.on('order:updated', () => {
+    const socket = backendOrigin
+      ? io(backendOrigin, { withCredentials: true })
+      : null;
+    socket?.on('order:updated', () => {
       fetchOrders();
     });
     return () => {
       clearInterval(interval);
-      socket.disconnect();
+      socket?.disconnect();
     };
   }, []);
 

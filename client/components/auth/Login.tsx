@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Link, useNavigate } from "@/lib/router";
+import { Link } from "@/lib/router";
 import api from "@/lib/axios";
 import { endpoints } from "@/lib/api/endpoints";
 import { useAppDispatch, useAppSelector } from "@/lib/redux/hooks";
@@ -17,7 +17,6 @@ const Login = () => {
     });
 
     const { loading, user, hydrated } = useAppSelector((store) => store.auth);
-    const navigate = useNavigate();
     const dispatch = useAppDispatch();
 
     // Handle input changes
@@ -39,18 +38,17 @@ const Login = () => {
             if (res.data.success) {
                 dispatch(setUser(res.data.user));
                 localStorage.removeItem("user");
-
-                if (res.data.user.role === "admin") {
-                    navigate("/admin/dashboard");
-                } else if (res.data.user.role === "cook") {
-                    navigate("/cook");
-                } else if (res.data.user.role === "pending") {
-                    navigate("/pending");
-                } else {
-                    navigate("/");
-                }
-                
                 toast.success(res.data.message);
+
+                const nextPath =
+                    res.data.user.role === "admin"
+                        ? "/admin/dashboard"
+                        : res.data.user.role === "cook"
+                          ? "/cook"
+                          : res.data.user.role === "pending"
+                            ? "/pending"
+                            : "/";
+                window.location.assign(nextPath);
             }
         } catch (error) {
             const status = error.response?.status;
@@ -68,11 +66,11 @@ const Login = () => {
     useEffect(() => {
         if (!hydrated || !user) return;
         if (user.role === "admin") {
-            navigate("/admin/dashboard");
+            window.location.assign("/admin/dashboard");
         } else if (user.role === "cook") {
-            navigate("/cook");
+            window.location.assign("/cook");
         }
-    }, [user, hydrated, navigate]);
+    }, [user, hydrated]);
 
     if (!hydrated) {
         return (

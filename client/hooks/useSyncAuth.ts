@@ -1,4 +1,5 @@
 import { useEffect } from "react";
+import axios from "axios";
 import { useAppDispatch } from "@/lib/redux/hooks";
 import { logout, setUser } from "@/lib/redux/authSlice";
 import api from "@/lib/axios";
@@ -19,10 +20,13 @@ const useSyncAuth = () => {
           return;
         }
         dispatch(logout());
-      } catch {
-        if (!cancelled) {
-          dispatch(logout());
+      } catch (error) {
+        if (cancelled) return;
+        const status = axios.isAxiosError(error) ? error.response?.status : undefined;
+        if (status === 404 || status === 502 || !axios.isAxiosError(error) || !error.response) {
+          return;
         }
+        dispatch(logout());
       }
     };
 
