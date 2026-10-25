@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useNavigate, useParams } from '@/lib/router';
+import { useNavigate, useRouteParam } from '@/lib/router';
 import { FiArrowLeft, FiPrinter, FiAlertTriangle } from 'react-icons/fi';
 import { endpoints } from "@/lib/api/endpoints";
 import BillReceipt from '@/components/admin/BillReceipt';
@@ -7,7 +7,7 @@ import api from '@/lib/axios';
 import { toast } from 'react-toastify';
 
 const OrderDetails = () => {
-  const { tableNumber } = useParams();
+  const tableNumber = useRouteParam('tableNumber');
   const navigate = useNavigate();
   const printRef = useRef<any>();
 

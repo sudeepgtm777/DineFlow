@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "@/lib/router";
+import { useRouteParam } from "@/lib/router";
 import api from "@/lib/axios";
 import RoomGallery from "@/components/customer/RoomGallery";
 import { endpoints } from "@/lib/api/endpoints";
@@ -7,7 +7,7 @@ import Logo from "@/components/brand/Logo";
 import { toast } from "react-toastify";
 
 const RoomDetails = () => {
-  const { roomNumber } = useParams();
+  const roomNumber = useRouteParam("roomNumber");
   const [room, setRoom] = useState<any>(null);
   const [loading, setLoading] = useState(false);
   const [booking, setBooking] = useState({ customerName: "", contactNumber: "" });
