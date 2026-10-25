@@ -34,6 +34,12 @@ export const useNavigate = () => {
 
 export const useParams = useNextParams;
 
+export const useRouteParam = (name: string): string | undefined => {
+  const params = useNextParams();
+  const value = params[name];
+  return Array.isArray(value) ? value[0] : value;
+};
+
 export const useSearchParams = () => {
   const router = useRouter();
   const pathname = usePathname();
