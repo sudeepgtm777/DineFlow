@@ -22,6 +22,9 @@ const tableSchema = new mongoose.Schema({
     url: String,
     public_id: String,
   },
+  sortOrder: {
+    type: Number,
+  },
 });
 
 const Table = mongoose.model("Table", tableSchema);

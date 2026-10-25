@@ -69,6 +69,10 @@ const orderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+    billed: {
+      type: Boolean,
+      default: false,
+    },
     bookingSessionId: {
       type: String,
       required: function () {

@@ -1,13 +1,15 @@
 import posModel from '../models/pos.model';
 import Order from '../models/order.model';
 import Table from '../models/table.model';
+import resolveOrderItems from '../utils/resolveOrderItems';
+import { validateTenders } from '../utils/tenders';
+import { emitOrderUpdated } from '../utils/emitOrder';
 
 // Create a new bill
 export const createBill = async (req, res) => {
   try {
     const {
       cart,
-      total,
       cash,
       credit,
       online,
@@ -22,83 +24,80 @@ export const createBill = async (req, res) => {
       return res.status(400).json({ error: 'Cart items are required' });
     }
 
-    // Validate cart items structure
-    const items = cart.map((item) => ({
-      id: item.id,
+    let pricedItems;
+    try {
+      pricedItems = await resolveOrderItems(cart);
+    } catch (resolveError) {
+      const err = resolveError as Error & { status?: number };
+      return res.status(err.status || 400).json({ error: err.message });
+    }
+
+    const items = pricedItems.map((item, index) => ({
+      id: String(cart[index]?.id || cart[index]?._id || ''),
       name: item.name,
       price: item.price,
       quantity: item.quantity,
     }));
 
-    // Create new POS bill record
+    const calculatedTotal = pricedItems.reduce(
+      (sum, item) => sum + item.price * item.quantity,
+      0,
+    );
+    const discount = Number(req.body.discount) || 0;
+    const billTotal = Math.max(0, calculatedTotal - discount);
+    let tenders;
+    try {
+      tenders = validateTenders({ cash, credit, online, billTotal });
+    } catch (tenderError) {
+      const err = tenderError as Error & { status?: number };
+      return res.status(err.status || 400).json({ error: err.message });
+    }
+
     const newBill = await posModel.create({
       items,
-      totalAmount: total,
-      cash,
-      credit,
-      online,
+      totalAmount: billTotal,
+      cash: tenders.cashAmt,
+      credit: tenders.creditAmt,
+      online: tenders.onlineAmt,
       paymentMethod,
-      orderType,
+      orderType: tableNumber ? 'dine-in' : 'delivery',
       customerDetails: {
         name: customerName || 'Guest',
         contact: customerNumber || '',
       },
     });
 
-    // Create kitchen order
-    const orderItems = cart.map((item) => ({
+    const orderItems = pricedItems.map((item) => ({
       name: item.name,
       price: item.price,
       quantity: item.quantity,
     }));
 
-    // Handle table booking and session management
     if (tableNumber) {
-      // Check if table has existing active order
       const table = await Table.findOne({ tableNumber: String(tableNumber) });
-
       let sessionId;
-      if (table && table.isBooked && table.currentOrderId) {
-        // Get session ID from existing order
+      if (table?.isBooked && table.currentOrderId) {
         const existingOrder = await Order.findById(table.currentOrderId);
         sessionId = existingOrder?.bookingSessionId;
-
-        if (
-          existingOrder &&
-          ['pending', 'in-progress'].includes(existingOrder.status)
-        ) {
-          // Add items to existing order
-          existingOrder.items.push(...orderItems);
-          existingOrder.subtotal += total;
-          await existingOrder.save();
-
-          return res.status(201).json({
-            success: true,
-            bill: newBill,
-            message: 'Items added to existing order',
-          });
-        }
-      } else {
-        // Generate new session ID for new booking
+      }
+      if (!sessionId) {
         sessionId = `session_${Date.now()}_${tableNumber}`;
       }
 
-      // Create new kitchen order with session ID
       const kitchenOrder = new Order({
         customerName: customerName || 'Guest',
         items: orderItems,
         orderType: 'dine-in',
         tableNumber: String(tableNumber),
         paymentMethod: 'counter',
-        subtotal: total,
+        subtotal: billTotal,
         status: 'in-progress',
         sentToKOT: true,
+        billed: true,
         bookingSessionId: sessionId,
       });
 
       await kitchenOrder.save();
-
-      // Update table booking
       await Table.findOneAndUpdate(
         { tableNumber: String(tableNumber) },
         {
@@ -106,21 +105,23 @@ export const createBill = async (req, res) => {
           currentOrderId: kitchenOrder._id,
         },
       );
+      emitOrderUpdated(req, kitchenOrder);
     } else {
-      // Takeaway order
       const kitchenOrder = new Order({
         customerName: customerName || 'Guest',
         items: orderItems,
         orderType: 'delivery',
-        phoneNumber: customerNumber || '0000000000',
+        phoneNumber: customerNumber || 'N/A',
         deliveryAddress: 'Takeaway',
         paymentMethod: 'counter',
-        subtotal: total,
+        subtotal: billTotal,
         status: 'in-progress',
         sentToKOT: true,
+        billed: true,
       });
 
       await kitchenOrder.save();
+      emitOrderUpdated(req, kitchenOrder);
     }
 
     res.status(201).json({ success: true, bill: newBill });
@@ -151,33 +152,69 @@ export const addItemsToOrder = async (req, res) => {
     }
 
     const existingOrder = await Order.findById(table.currentOrderId);
-    if (
-      !existingOrder ||
-      !['pending', 'in-progress'].includes(existingOrder.status)
-    ) {
-      return res.status(400).json({ error: 'Cannot add items to this order' });
+
+    let pricedItems;
+    try {
+      pricedItems = await resolveOrderItems(cart);
+    } catch (resolveError) {
+      const err = resolveError as Error & { status?: number };
+      return res.status(err.status || 400).json({ error: err.message });
     }
 
-    // Add new items to existing order
-    const newItems = cart.map((item) => ({
+    const newItems = pricedItems.map((item) => ({
       name: item.name,
       price: item.price,
       quantity: item.quantity,
     }));
 
-    const additionalTotal = cart.reduce(
+    const additionalTotal = pricedItems.reduce(
       (sum, item) => sum + item.price * item.quantity,
       0,
     );
 
-    existingOrder.items.push(...newItems);
-    existingOrder.subtotal += additionalTotal;
-    await existingOrder.save();
+    const canAppend =
+      existingOrder &&
+      !existingOrder.sentToKOT &&
+      ['pending', 'in-progress'].includes(existingOrder.status);
 
-    res.status(200).json({
+    if (canAppend) {
+      existingOrder.items.push(...newItems);
+      existingOrder.subtotal += additionalTotal;
+      await existingOrder.save();
+
+      return res.status(200).json({
+        success: true,
+        message: 'Items added to existing order',
+        order: existingOrder,
+      });
+    }
+
+    const sessionId =
+      existingOrder?.bookingSessionId ||
+      `session_${Date.now()}_${tableNumber}`;
+
+    const kitchenOrder = new Order({
+      customerName: customerName || existingOrder?.customerName || 'Guest',
+      items: newItems,
+      orderType: 'dine-in',
+      tableNumber: String(tableNumber),
+      paymentMethod: 'counter',
+      subtotal: additionalTotal,
+      status: 'pending',
+      sentToKOT: false,
+      billed: false,
+      bookingSessionId: sessionId,
+    });
+
+    await kitchenOrder.save();
+    table.isBooked = true;
+    table.currentOrderId = kitchenOrder._id;
+    await table.save();
+
+    res.status(201).json({
       success: true,
-      message: 'Items added to existing order',
-      order: existingOrder,
+      message: 'New order created for additional items',
+      order: kitchenOrder,
     });
   } catch (err) {
     console.error(err);

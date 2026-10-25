@@ -44,6 +44,9 @@ const roomSchema = new mongoose.Schema({
       url: String,
     },
   ],
+  sortOrder: {
+    type: Number,
+  },
   checkInDate: {
     type: Date,
   },

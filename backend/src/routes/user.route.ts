@@ -8,13 +8,23 @@ import {
   getAllUsers,
   promoteToAdmin,
   demoteFromAdmin,
+  approveCook,
+  rejectCook,
 } from '../controllers/user.controller';
 import isAuthenticated from '../middlewares/isAuthenticated';
 import { singleUpload } from '../middlewares/multer';
 import isAdmin from '../middlewares/isAdmin';
 import rateLimit from 'express-rate-limit';
 
-const authLimiter = rateLimit({
+const loginLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { message: 'Too many attempts. Try again in a minute.', success: false },
+});
+
+const registerLimiter = rateLimit({
   windowMs: 60 * 1000,
   limit: 5,
   standardHeaders: true,
@@ -24,13 +34,15 @@ const authLimiter = rateLimit({
 
 const router = express.Router();
 
-router.post('/register', authLimiter, singleUpload, register);
-router.post('/login', authLimiter, login);
-router.get('/logout', isAuthenticated, logout);
+router.post('/register', registerLimiter, singleUpload, register);
+router.post('/login', loginLimiter, login);
+router.get('/logout', logout);
 router.put('/update-profile/:id', isAuthenticated, singleUpload, updateProfile);
-router.get('/check-login-status', isAuthenticated, checkLoginStatus);
+router.get('/check-login-status', checkLoginStatus);
 
 router.get('/all', isAuthenticated, isAdmin, getAllUsers);
+router.put('/approve/:userId', isAuthenticated, isAdmin, approveCook);
+router.put('/reject/:userId', isAuthenticated, isAdmin, rejectCook);
 router.put('/promote/:userId', isAuthenticated, isAdmin, promoteToAdmin);
 router.put('/demote/:userId', isAuthenticated, isAdmin, demoteFromAdmin);
 

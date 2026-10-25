@@ -3,9 +3,11 @@ import {
   createTable,
   getAllTableQRCodes,
   getAllTables,
+  getAvailableTables,
   getTableByNumber,
   getTableBookingStatusCounts,
   releaseTable,
+  reorderTables,
   deleteTable,
   toggleTableBooking,
 } from '../controllers/table.controller';
@@ -23,6 +25,8 @@ router.get(
   getTableBookingStatusCounts,
 );
 router.get('/get-qrcodes', isAuthenticated, isAdmin, getAllTableQRCodes);
+router.get('/available', getAvailableTables);
+router.post('/reorder', isAuthenticated, isAdmin, reorderTables);
 router.get('/:tableNumber', getTableByNumber);
 router.put('/release/:tableNumber', isAuthenticated, isAdmin, releaseTable);
 router.put(

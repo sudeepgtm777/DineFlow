@@ -61,13 +61,9 @@ export const getAllMenuItems = async (req, res) => {
   try {
     const menuItems = await MenuItem.find();
 
-    if (!menuItems || menuItems.length === 0) {
-      return res.status(404).json({ message: "No menu items found." });
-    }
-
     res.status(200).json({
       message: "Menu items retrieved successfully",
-      menuItems,
+      menuItems: menuItems || [],
     });
   } catch (error) {
     console.error("Error retrieving menu items:", error);
@@ -79,7 +75,7 @@ export const getAllMenuItems = async (req, res) => {
 export const getMenuItemById = async (req, res) => {
   try {
     const { id } = req.params;
-    const menuItem = await MenuItem.findById(id).populate("createdBy", "fullname phoneNumber profile.profilePhoto");
+    const menuItem = await MenuItem.findById(id);
 
     if (!menuItem) {
       return res.status(404).json({ message: "Menu item not found" });
@@ -113,7 +109,14 @@ export const updateMenuItem = async (req, res) => {
       };
     }
 
-    let mainImage = imageUpload.url ? imageUpload : req.body.image || {};
+    const existingItem = await MenuItem.findById(id);
+    if (!existingItem) {
+      return res.status(404).json({ message: "Menu item not found" });
+    }
+
+    const mainImage = imageUpload.url
+      ? imageUpload
+      : existingItem.image || {};
 
     const updatedMenuItem = await MenuItem.findByIdAndUpdate(
       id,
@@ -169,10 +172,6 @@ export const deleteMenuItem = async (req, res) => {
 export const getMenuCategories = async (req, res) => {
   try {
     const menuItems = await MenuItem.find({}, "category customCategory");
-
-    if (!menuItems || menuItems.length === 0) {
-      return res.status(404).json({ message: "No menu items found." });
-    }
 
     const categoriesSet = new Set();
 

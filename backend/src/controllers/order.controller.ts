@@ -1,6 +1,62 @@
 import Order from '../models/order.model';
 import Table from '../models/table.model';
+import posModel from '../models/pos.model';
 import resolveOrderItems from '../utils/resolveOrderItems';
+import { emitOrderUpdated } from '../utils/emitOrder';
+import { mapOrderTender, pickUnbilledOrders } from '../utils/tenders';
+import {
+  getSessionOrders,
+  getTableSessionId,
+  syncTableOccupancy,
+} from '../utils/tableSession';
+
+const createPosBillFromOrders = async (
+  orders,
+  tender: { paymentMethod?: string } = {},
+) => {
+  const billable = pickUnbilledOrders(orders);
+  if (billable.length === 0) {
+    return null;
+  }
+
+  const items = billable.flatMap((order) =>
+    (order.items || []).map((item) => ({
+      id: String(item._id || ''),
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+    })),
+  );
+  const totalAmount = billable.reduce(
+    (sum, order) => sum + (order.subtotal || 0),
+    0,
+  );
+  const mapped = mapOrderTender(
+    tender.paymentMethod || billable[0]?.paymentMethod,
+    totalAmount,
+  );
+
+  const bill = await posModel.create({
+    items,
+    totalAmount,
+    cash: mapped.cash,
+    credit: mapped.credit,
+    online: mapped.online,
+    paymentMethod: mapped.paymentMethod,
+    orderType: billable[0]?.orderType === 'delivery' ? 'delivery' : 'dine-in',
+    customerDetails: {
+      name: billable[0]?.customerName || 'Guest',
+      contact: billable[0]?.phoneNumber || '',
+    },
+  });
+
+  await Order.updateMany(
+    { _id: { $in: billable.map((order) => order._id) } },
+    { $set: { billed: true } },
+  );
+
+  return bill;
+};
 
 export const createOrder = async (req, res) => {
   try {
@@ -10,6 +66,7 @@ export const createOrder = async (req, res) => {
       orderType,
       tableNumber,
       deliveryAddress,
+      phoneNumber,
       specialInstructions,
       paymentMethod,
       subtotal,
@@ -34,7 +91,7 @@ export const createOrder = async (req, res) => {
           .json({ message: 'Table number is required for dine-in' });
       }
 
-      dineInTable = await Table.findOne({ tableNumber });
+      dineInTable = await Table.findOne({ tableNumber: String(tableNumber) });
       if (!dineInTable) {
         return res
           .status(404)
@@ -54,6 +111,12 @@ export const createOrder = async (req, res) => {
       return res.status(400).json({ message: 'Delivery address is required' });
     }
 
+    if (orderType === 'delivery' && !phoneNumber) {
+      return res
+        .status(400)
+        .json({ message: 'Phone number is required for delivery' });
+    }
+
     if (!paymentMethod || !['counter', 'card'].includes(paymentMethod)) {
       return res.status(400).json({ message: 'Invalid payment method' });
     }
@@ -68,8 +131,11 @@ export const createOrder = async (req, res) => {
       customerName,
       items: pricedItems,
       orderType,
-      ...(orderType === 'dine-in' && { tableNumber, bookingSessionId }),
-      ...(orderType === 'delivery' && { deliveryAddress }),
+      ...(orderType === 'dine-in' && {
+        tableNumber: String(tableNumber),
+        bookingSessionId,
+      }),
+      ...(orderType === 'delivery' && { deliveryAddress, phoneNumber }),
       ...(specialInstructions && { specialInstructions }),
       paymentMethod,
       subtotal: calculatedSubtotal,
@@ -80,7 +146,7 @@ export const createOrder = async (req, res) => {
     // If dine-in, update the table
     if (orderType === 'dine-in') {
       await Table.findOneAndUpdate(
-        { tableNumber },
+        { tableNumber: String(tableNumber) },
         {
           isBooked: ['pending', 'in-progress'].includes(createdOrder.status),
           currentOrderId: createdOrder._id,
@@ -89,6 +155,7 @@ export const createOrder = async (req, res) => {
       );
     }
 
+    emitOrderUpdated(req, createdOrder);
     return res.status(201).json(createdOrder);
   } catch (error) {
     console.error('Error while creating order:', error);
@@ -159,6 +226,12 @@ export const addItemToOrder = async (req, res) => {
       return res.status(404).json({ message: 'Order not found' });
     }
 
+    if (order.sentToKOT) {
+      return res.status(400).json({
+        message: 'This order was already sent to KOT. Place a new order for additional items.',
+      });
+    }
+
     // Check if order is active
     if (!['pending', 'in-progress'].includes(order.status)) {
       return res.status(400).json({
@@ -169,7 +242,7 @@ export const addItemToOrder = async (req, res) => {
 
     // Verify tableNumber for dine-in orders
     if (order.orderType === 'dine-in') {
-      if (!tableNumber || order.tableNumber !== tableNumber) {
+      if (!tableNumber || String(order.tableNumber) !== String(tableNumber)) {
         return res
           .status(400)
           .json({ message: 'Table number mismatch or not provided' });
@@ -197,6 +270,7 @@ export const addItemToOrder = async (req, res) => {
     );
     const updatedOrder = await order.save();
 
+    emitOrderUpdated(req, updatedOrder);
     res.status(200).json(updatedOrder);
   } catch (error) {
     console.error('Error updating order:', error);
@@ -233,11 +307,9 @@ export const getFilteredOrders = async (req, res) => {
         startDate.setHours(0, 0, 0, 0);
         break;
       default:
-        const allOrders = await Order.find().sort({ createdAt: -1 });
-        return res.status(200).json({
-          totalOrders: allOrders.length,
-          orders: allOrders,
-        });
+        startDate = new Date();
+        startDate.setHours(0, 0, 0, 0);
+        break;
     }
 
     // Find orders between startDate and endDate
@@ -282,30 +354,19 @@ export const updateOrderStatus = async (req, res) => {
       return res.status(404).json({ message: 'Order not found.' });
     }
 
-    // Update order status
     order.status = status;
     const updatedOrder = await order.save();
 
-    // Handle table booking for dine-in orders
     if (order.orderType === 'dine-in' && order.tableNumber) {
-      const table = await Table.findOne({ tableNumber: order.tableNumber });
-      if (!table) {
-        return res
-          .status(404)
-          .json({ message: `Table number ${order.tableNumber} not found` });
+      const table = await Table.findOne({
+        tableNumber: String(order.tableNumber),
+      });
+      if (table) {
+        await syncTableOccupancy(table);
       }
-
-      // Set isBooked based on status
-      // if (status === "in-progress") {
-      //   table.isBooked = true;
-      // } else if (["completed", "cancelled", "delivered"].includes(status)) {
-      //   table.isBooked = false;
-      //   table.currentOrderId = null;
-      // }
-
-      await table.save();
     }
 
+    emitOrderUpdated(req, updatedOrder);
     res.status(200).json({
       message: 'Order status updated successfully.',
       order: updatedOrder,
@@ -324,15 +385,25 @@ export const getActiveOrder = async (req, res) => {
       return res.status(400).json({ message: 'Table number is required' });
     }
 
-    const inProgressOrders = await Order.find({
-      tableNumber,
+    const table = await Table.findOne({ tableNumber: String(tableNumber) });
+    if (!table?.isBooked) {
+      return res.status(200).json({
+        totalInProgress: 0,
+        orders: [],
+      });
+    }
+
+    const activeOrders = await Order.find({
+      tableNumber: String(tableNumber),
       orderType: 'dine-in',
-      status: 'in-progress',
+      billed: { $ne: true },
+      sentToKOT: { $ne: true },
+      status: 'pending',
     }).sort({ createdAt: -1 });
 
     res.status(200).json({
-      totalInProgress: inProgressOrders.length,
-      orders: inProgressOrders,
+      totalInProgress: activeOrders.length,
+      orders: activeOrders,
     });
   } catch (error) {
     console.error('Error fetching in-progress orders:', error);
@@ -343,57 +414,38 @@ export const getActiveOrder = async (req, res) => {
 // controllers/orderController.js
 export const completeOrder = async (req, res) => {
   try {
-    const { tableNumber } = req.body;
-
-    console.log('Received tableNumber:', tableNumber);
+    const { tableNumber, paymentMethod } = req.body;
 
     if (!tableNumber) {
       return res.status(400).json({ message: 'Table number is required' });
     }
 
-    // Ensure tableNumber is treated as a string (or number, depending on your schema)
-    const query = {
-      tableNumber: String(tableNumber), // Convert to string to match schema
-      orderType: 'dine-in',
-      status: { $in: ['pending', 'in-progress'] },
-    };
-    console.log('Query criteria:', query);
-
-    // Check existing orders
-    const existingOrders = await Order.find(query);
-    console.log('Found orders:', existingOrders);
+    const table = await Table.findOne({ tableNumber: String(tableNumber) });
+    const sessionId = table ? await getTableSessionId(table) : null;
+    const sessionOrders = sessionId
+      ? await getSessionOrders(tableNumber, sessionId)
+      : [];
+    const existingOrders = pickUnbilledOrders(sessionOrders);
 
     if (existingOrders.length === 0) {
       return res
         .status(404)
-        .json({ message: 'No active orders found for table' });
+        .json({ message: 'No unbilled orders found for this table session' });
     }
 
-    // Update orders to completed
+    await createPosBillFromOrders(existingOrders, { paymentMethod });
+
+    const orderIds = existingOrders.map((order) => order._id);
     const updateResult = await Order.updateMany(
-      query,
-      { $set: { status: 'completed' } },
+      { _id: { $in: orderIds } },
+      { $set: { status: 'completed', billed: true } },
     );
 
-    console.log('Update result:', updateResult);
-
-    // Update table booking status
-    const table = await Table.findOne({ tableNumber: String(tableNumber) });
     if (table) {
-      await Table.updateOne(
-        { tableNumber: String(tableNumber) },
-        {
-          $set: {
-            isBooked: false,
-            currentOrderId: null,
-          },
-        },
-      );
-      console.log('Table updated:', { tableNumber, isBooked: false });
-    } else {
-      console.warn(`Table ${tableNumber} not found`);
+      await syncTableOccupancy(table);
     }
 
+    emitOrderUpdated(req, { tableNumber, completed: true });
     res.status(200).json({
       message: 'Orders completed successfully',
       modifiedCount: updateResult.modifiedCount,
@@ -498,6 +550,7 @@ export const sendToKotController = async (req, res) => {
     order.status = 'in-progress'; // Change status to in-progress
     await order.save();
 
+    emitOrderUpdated(req, order);
     res.status(200).json({ message: 'Order sent to KOT successfully', order });
   } catch (error) {
     console.error('Error sending order to KOT:', error);
@@ -513,11 +566,30 @@ export const getTableBill = async (req, res) => {
       return res.status(400).json({ message: 'Table number is required' });
     }
 
-    // Get all orders for this table (including completed ones)
-    const orders = await Order.find({
-      tableNumber: String(tableNumber),
-      orderType: 'dine-in',
-    }).sort({ createdAt: 1 });
+    const table = await Table.findOne({ tableNumber: String(tableNumber) });
+    let orders = [];
+
+    if (table?.isBooked && table.currentOrderId) {
+      const currentOrder = await Order.findById(table.currentOrderId);
+      const sessionId = currentOrder?.bookingSessionId;
+      if (sessionId) {
+        orders = await Order.find({
+          tableNumber: String(tableNumber),
+          orderType: 'dine-in',
+          bookingSessionId: sessionId,
+          status: { $nin: ['cancelled'] },
+        }).sort({ createdAt: 1 });
+      }
+    }
+
+    if (orders.length === 0) {
+      orders = await Order.find({
+        tableNumber: String(tableNumber),
+        orderType: 'dine-in',
+        billed: { $ne: true },
+        status: { $in: ['pending', 'in-progress', 'completed'] },
+      }).sort({ createdAt: 1 });
+    }
 
     // Calculate totals
     const grandTotal = orders.reduce((sum, order) => {

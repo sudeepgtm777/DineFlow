@@ -1,9 +1,49 @@
 import Room from "../models/room.model";
-import Order from "../models/order.model";
+import RoomBooking from "../models/roombook.model";
 import QRCode from "qrcode";
 import cloudinary from "../utils/cloudinary";
 import fs from "fs";
 import path from "path";
+
+const compareRooms = (a, b) => {
+  const aOrder =
+    typeof a.sortOrder === "number" ? a.sortOrder : Number(a.roomNumber);
+  const bOrder =
+    typeof b.sortOrder === "number" ? b.sortOrder : Number(b.roomNumber);
+  const aRank = Number.isFinite(aOrder) ? aOrder : Number.MAX_SAFE_INTEGER;
+  const bRank = Number.isFinite(bOrder) ? bOrder : Number.MAX_SAFE_INTEGER;
+  if (aRank !== bRank) return aRank - bRank;
+  return String(a.roomNumber).localeCompare(String(b.roomNumber), undefined, {
+    numeric: true,
+    sensitivity: "base",
+  });
+};
+
+const parseAmenities = (amenities) => {
+  if (!amenities) return [];
+
+  const unwrap = (value) => {
+    if (Array.isArray(value)) {
+      return value.flatMap(unwrap);
+    }
+    if (typeof value !== "string") {
+      return [String(value)];
+    }
+    const trimmed = value.trim();
+    if (!trimmed) return [];
+    try {
+      const parsed = JSON.parse(trimmed);
+      if (Array.isArray(parsed) || typeof parsed === "string") {
+        return unwrap(parsed);
+      }
+    } catch {
+      // not JSON
+    }
+    return trimmed.split(",").map((item) => item.trim()).filter(Boolean);
+  };
+
+  return unwrap(amenities);
+};
 
 // Create a new room
 export const createRoom = async (req, res) => {
@@ -27,17 +67,26 @@ export const createRoom = async (req, res) => {
       return res.status(400).json({ message: "Room already exists." });
     }
 
+    const lastOrdered = await Room.findOne()
+      .sort({ sortOrder: -1 })
+      .select("sortOrder roomNumber");
+    const nextOrder =
+      typeof lastOrdered?.sortOrder === "number"
+        ? lastOrdered.sortOrder + 1
+        : Number(roomNumber) || 0;
+
     // Create room instance
     const room = new Room({
       roomNumber,
       roomType,
       capacity: capacity || 2,
       pricePerNight,
-      amenities: Array.isArray(amenities) ? amenities : [amenities],
+      amenities: parseAmenities(amenities),
+      sortOrder: nextOrder,
     });
 
     // Generate QR code URL for the room
-    const qrUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/order?room=${roomNumber}`;
+    const qrUrl = `${process.env.FRONTEND_URL || 'http://localhost:3000'}/rooms/${roomNumber}`;
 
     // Generate QR code and save temporarily
     const tempDir = path.resolve("./tmp");
@@ -101,10 +150,32 @@ export const createRoom = async (req, res) => {
 // Get all rooms
 export const getAllRooms = async (req, res) => {
   try {
-    const rooms = await Room.find().populate("currentOrderId");
-    res.status(200).json(rooms);
+    const rooms = await Room.find();
+    res.status(200).json([...rooms].sort(compareRooms));
   } catch (err) {
     res.status(500).json({ message: "Internal server error", error: err.message });
+  }
+};
+
+export const reorderRooms = async (req, res) => {
+  try {
+    const { orderedIds } = req.body;
+    if (!Array.isArray(orderedIds) || orderedIds.length === 0) {
+      return res.status(400).json({ message: "orderedIds is required" });
+    }
+
+    await Promise.all(
+      orderedIds.map((id, index) =>
+        Room.findByIdAndUpdate(id, { sortOrder: index }),
+      ),
+    );
+
+    res.status(200).json({ message: "Rooms reordered" });
+  } catch (err) {
+    console.error("Error reordering rooms:", err);
+    res
+      .status(500)
+      .json({ message: "Internal server error", error: err.message });
   }
 };
 
@@ -113,7 +184,7 @@ export const getAllRooms = async (req, res) => {
 export const getRoomByNumber = async (req, res) => {
   try {
     const { roomNumber } = req.params;
-    const room = await Room.findOne({ roomNumber }).populate("currentOrderId");
+    const room = await Room.findOne({ roomNumber });
     if (!room) return res.status(404).json({ message: "Room not found" });
     res.status(200).json(room);
   } catch (err) {
@@ -149,7 +220,7 @@ export const updateRoom = async (req, res) => {
     if (roomType) room.roomType = roomType;
     if (capacity !== undefined) room.capacity = capacity;
     if (pricePerNight) room.pricePerNight = pricePerNight;
-    if (amenities) room.amenities = Array.isArray(amenities) ? amenities : [amenities];
+    if (amenities) room.amenities = parseAmenities(amenities);
 
     // Handle photo update (optional)
     if (req.files && req.files.length > 0) {
@@ -186,21 +257,26 @@ export const updateRoom = async (req, res) => {
 };
 
 
-// Book room (check-in)
 export const checkInRoom = async (req, res) => {
   try {
     const { roomNumber } = req.params;
-    const { orderId } = req.body;
-
     const room = await Room.findOne({ roomNumber });
     if (!room) return res.status(404).json({ message: "Room not found" });
 
-    if (room.isBooked) return res.status(400).json({ message: "Room is already booked" });
+    const booking = await RoomBooking.findOne({
+      room: room._id,
+      status: { $in: ["booked", "checked-in"] },
+    });
+    if (!booking) {
+      return res.status(400).json({ message: "No active booking for this room" });
+    }
+
+    booking.status = "checked-in";
+    booking.checkInDate = booking.checkInDate || new Date();
+    await booking.save();
 
     room.isBooked = true;
-    room.currentOrderId = orderId;
-    room.checkInDate = new Date();
-
+    room.checkInDate = booking.checkInDate;
     await room.save();
     res.status(200).json({ message: "Room checked in successfully", room });
   } catch (err) {
@@ -208,57 +284,29 @@ export const checkInRoom = async (req, res) => {
   }
 };
 
-// Checkout room
 export const checkOutRoom = async (req, res) => {
   try {
     const { roomNumber } = req.params;
-
     const room = await Room.findOne({ roomNumber });
     if (!room || !room.isBooked) {
       return res.status(400).json({ message: "Room is not booked" });
     }
 
-    const order = await Order.findById(room.currentOrderId);
-    if (!order || order.status !== "completed") {
-      return res.status(400).json({ message: "Order not completed yet" });
+    const booking = await RoomBooking.findOne({
+      room: room._id,
+      status: { $in: ["booked", "checked-in"] },
+    });
+    if (booking) {
+      booking.status = "checked-out";
+      booking.checkOutDate = new Date();
+      await booking.save();
     }
 
     room.isBooked = false;
     room.currentOrderId = null;
     room.checkOutDate = new Date();
-
     await room.save();
     res.status(200).json({ message: "Room checked out successfully" });
-  } catch (err) {
-    res.status(500).json({ message: "Internal server error", error: err.message });
-  }
-};
-
-// Place a food order from the room
-export const placeRoomOrder = async (req, res) => {
-  try {
-    const { roomNumber } = req.params;
-    const { items, totalAmount, paymentMethod } = req.body;
-
-    const room = await Room.findOne({ roomNumber });
-    if (!room || !room.isBooked) {
-      return res.status(400).json({ message: "Room is not booked" });
-    }
-
-    const order = new Order({
-      items,
-      totalAmount,
-      paymentMethod,
-      roomNumber,
-      status: "pending",
-    });
-
-    await order.save();
-
-    room.currentOrderId = order._id;
-    await room.save();
-
-    res.status(201).json({ message: "Food order placed", order });
   } catch (err) {
     res.status(500).json({ message: "Internal server error", error: err.message });
   }

@@ -16,7 +16,7 @@ import bookingRoute from './routes/booking.route';
 
 dotenv.config();
 
-['JWT_SECRET', 'MONGO_URI'].forEach((key) => {
+['JWT_SECRET', 'MONGO_URI', 'FRONTEND_URL'].forEach((key) => {
   if (!process.env[key]) {
     console.error(`Missing required environment variable: ${key}`);
     process.exit(1);
@@ -24,20 +24,19 @@ dotenv.config();
 });
 
 const allowedOrigins = [
-  'http://localhost:3000',
-  'http://localhost:3001',
-  'http://localhost:4000',
-  'http://localhost:5173',
+  ...(process.env.NODE_ENV === 'production'
+    ? []
+    : ['http://localhost:3000', 'http://localhost:3001']),
   process.env.FRONTEND_URL,
-  'https://restro-erp.onrender.com',
 ].filter(Boolean);
 
 const app = express();
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 const io = new Server(server, {
   cors: {
     origin: allowedOrigins,
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
   },
 });
@@ -49,10 +48,14 @@ app.use(
       if (!origin || allowedOrigins.includes(origin)) {
         callback(null, true);
       } else {
-        callback(new Error('Not allowed by CORS'));
+        const corsError = new Error('Not allowed by CORS') as Error & {
+          status?: number;
+        };
+        corsError.status = 403;
+        callback(corsError);
       }
     },
-    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true,
     optionsSuccessStatus: 200,
