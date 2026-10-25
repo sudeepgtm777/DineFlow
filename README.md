@@ -4,23 +4,26 @@ Restaurant and hotel operations app for dine-in QR ordering, kitchen tickets, PO
 
 The repo is split into two apps:
 
-| App | Stack | Default URL |
-| --- | --- | --- |
-| [`backend/`](backend) | Express + TypeScript + MongoDB | `http://localhost:4000` |
-| [`client/`](client) | Next.js 16 (App Router) + React 18 + Redux | `http://localhost:3000` |
+| App                   | Stack                                      | Default URL             |
+| --------------------- | ------------------------------------------ | ----------------------- |
+| [`backend/`](backend) | Express + TypeScript + MongoDB             | `http://localhost:4000` |
+| [`client/`](client)   | Next.js 16 (App Router) + React 18 + Redux | `http://localhost:3000` |
 
 ## Features
 
 **Guest**
+
 - Scan a table QR (`/order?table=2`) or open `/?table=2` to browse the menu
 - Cart, checkout, and pay at the counter
 - Add items to an already-open table session
 
 **Kitchen (cook)**
+
 - Board of tickets sent to KOT
 - Mark orders in progress / completed
 
 **Admin**
+
 - Dashboard: today’s orders, sales, kitchen load, table occupancy
 - Manage Orders: send to KOT, update status, generate a bill
 - Menu CRUD with image upload (Cloudinary)
@@ -105,15 +108,15 @@ cd backend
 cp .env.example .env
 ```
 
-| Variable | Required | Purpose |
-| --- | --- | --- |
-| `MONGO_URI` | yes | Mongo connection string |
-| `JWT_SECRET` | yes | Signs auth cookies |
-| `PORT` | no | Defaults to `4000` |
-| `NODE_ENV` | no | `development` or `production` |
-| `FRONTEND_URL` | no | Origin for CORS and QR links (default `http://localhost:3000`) |
-| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | no | Seeds an admin on first connect if that email does not exist |
-| `CLOUDINARY_*` | for uploads | Menu images, room photos, table QR files |
+| Variable                         | Required    | Purpose                                                        |
+| -------------------------------- | ----------- | -------------------------------------------------------------- |
+| `MONGO_URI`                      | yes         | Mongo connection string                                        |
+| `JWT_SECRET`                     | yes         | Signs auth cookies                                             |
+| `PORT`                           | no          | Defaults to `4000`                                             |
+| `NODE_ENV`                       | no          | `development` or `production`                                  |
+| `FRONTEND_URL`                   | no          | Origin for CORS and QR links (default `http://localhost:3000`) |
+| `ADMIN_EMAIL` / `ADMIN_PASSWORD` | no          | Seeds an admin on first connect if that email does not exist   |
+| `CLOUDINARY_*`                   | for uploads | Menu images, room photos, table QR files                       |
 
 The process exits on boot if `MONGO_URI` or `JWT_SECRET` is missing.
 
@@ -158,24 +161,24 @@ Sign in at `/login`. Admins land on `/admin/dashboard`, cooks on `/cook`.
 
 ## App routes
 
-| Path | Who |
-| --- | --- |
-| `/` | Public menu |
-| `/order?table=` | Guest dine-in (QR) |
-| `/guest-checkout?table=` | Guest checkout |
+| Path                            | Who                     |
+| ------------------------------- | ----------------------- |
+| `/`                             | Public menu             |
+| `/order?table=`                 | Guest dine-in (QR)      |
+| `/guest-checkout?table=`        | Guest checkout          |
 | `/rooms`, `/rooms/[roomNumber]` | Public room list / book |
-| `/login`, `/signup` | Auth |
-| `/admin/dashboard` | Admin home |
-| `/admin/orders` | Manage Orders |
-| `/admin/menu` | Menu |
-| `/admin/table-stats` | Tables |
-| `/admin/room-stats` | Rooms |
-| `/admin/reservations` | Room bookings |
-| `/admin/pos` | POS |
-| `/admin/reports` | Sales reports |
-| `/admin/get-total` | Payment totals |
-| `/admin/settings` | Users |
-| `/cook` | Kitchen board |
+| `/login`, `/signup`             | Auth                    |
+| `/admin/dashboard`              | Admin home              |
+| `/admin/orders`                 | Manage Orders           |
+| `/admin/menu`                   | Menu                    |
+| `/admin/table-stats`            | Tables                  |
+| `/admin/room-stats`             | Rooms                   |
+| `/admin/reservations`           | Room bookings           |
+| `/admin/pos`                    | POS                     |
+| `/admin/reports`                | Sales reports           |
+| `/admin/get-total`              | Payment totals          |
+| `/admin/settings`               | Users                   |
+| `/cook`                         | Kitchen board           |
 
 `/admin/*` and `/cook/*` require a `token` cookie (Next middleware).
 
@@ -183,16 +186,16 @@ Sign in at `/login`. Admins land on `/admin/dashboard`, cooks on `/cook`.
 
 Base path: `/api/v1`
 
-| Prefix | Area |
-| --- | --- |
-| `/user` | Register, login, logout, profile, promote / demote |
-| `/menuitem` | Menu items and categories |
-| `/order` | Create / add items (public), list, KOT, complete, table bill |
-| `/table` | Tables, QR, occupancy |
-| `/bill` | Table session bill |
-| `/pos` | Bills, daily / monthly sales, payment totals |
-| `/room` | Rooms, check-in / check-out |
-| `/roombooking` | Guest book, admin list / status |
+| Prefix         | Area                                                         |
+| -------------- | ------------------------------------------------------------ |
+| `/user`        | Register, login, logout, profile, promote / demote           |
+| `/menuitem`    | Menu items and categories                                    |
+| `/order`       | Create / add items (public), list, KOT, complete, table bill |
+| `/table`       | Tables, QR, occupancy                                        |
+| `/bill`        | Table session bill                                           |
+| `/pos`         | Bills, daily / monthly sales, payment totals                 |
+| `/room`        | Rooms, check-in / check-out                                  |
+| `/roombooking` | Guest book, admin list / status                              |
 
 Guest `POST /order/create-order` and `POST /order/add-item/:orderId` are public. Everything else for staff is cookie-authenticated.
 
@@ -232,3 +235,79 @@ cd client && npm run build && npm start
 ## License
 
 ISC. Author: Sudeep Gautam.
+
+## Screenshots
+
+### Desktop
+
+Guest menu, cart, and checkout
+
+<p>
+  <img src="client/public/screenshots/ss1.png" alt="Guest menu" width="48%" />
+  <img src="client/public/screenshots/ss2.png" alt="Guest cart drawer" width="48%" />
+</p>
+<p>
+  <img src="client/public/screenshots/ss3.png" alt="Guest checkout" width="48%" />
+  <img src="client/public/screenshots/ss4.png" alt="Select table at checkout" width="48%" />
+</p>
+
+<img src="client/public/screenshots/ss5.png" alt="Order created" width="80%" />
+
+Admin dashboard, orders, and bills
+
+<p>
+  <img src="client/public/screenshots/ss6.png" alt="Admin dashboard" width="48%" />
+  <img src="client/public/screenshots/ss7.png" alt="Manage orders" width="48%" />
+</p>
+<p>
+  <img src="client/public/screenshots/ss8.png" alt="Printable bill" width="48%" />
+  <img src="client/public/screenshots/ss13.png" alt="Settle table bill" width="48%" />
+</p>
+
+Menu, tables, and rooms
+
+<p>
+  <img src="client/public/screenshots/ss9.png" alt="Menu management" width="48%" />
+  <img src="client/public/screenshots/ss10.png" alt="Add menu item" width="48%" />
+</p>
+<p>
+  <img src="client/public/screenshots/ss11.png" alt="Table manager with QR codes" width="48%" />
+  <img src="client/public/screenshots/ss12.png" alt="Settle bill before release" width="48%" />
+</p>
+<p>
+  <img src="client/public/screenshots/ss14.png" alt="Table released" width="48%" />
+  <img src="client/public/screenshots/ss15.png" alt="Room manager" width="48%" />
+</p>
+
+<img src="client/public/screenshots/ss16.png" alt="Create room" width="80%" />
+
+Reservations, POS, reports, and settings
+
+<p>
+  <img src="client/public/screenshots/ss17.png" alt="Room reservations" width="48%" />
+  <img src="client/public/screenshots/ss18.png" alt="POS" width="48%" />
+</p>
+<p>
+  <img src="client/public/screenshots/ss19.png" alt="Sales reports" width="48%" />
+  <img src="client/public/screenshots/ss20.png" alt="Payment totals" width="48%" />
+</p>
+
+<img src="client/public/screenshots/ss21.png" alt="Staff settings" width="80%" />
+
+### Mobile
+
+Guest order flow
+
+<p>
+  <img src="client/public/screenshots/ss14P1.jpeg" alt="Mobile guest menu" width="24%" />
+  <img src="client/public/screenshots/ss14P2.jpeg" alt="Mobile checkout table" width="24%" />
+  <img src="client/public/screenshots/ss14P3.jpeg" alt="Mobile order summary" width="24%" />
+  <img src="client/public/screenshots/ss14P4.jpeg" alt="Mobile order success" width="24%" />
+</p>
+
+Room booking
+
+<p>
+  <img src="client/public/screenshots/ss16P1.jpeg" alt="Mobile room details" width="24%" />
+  <img src="client/public/screenshots/ss16P2.jpeg" alt="Mobile book room" width="24%" />
+</p>
